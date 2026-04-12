@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, BookOpen, MessageCircle, Camera, Tv, Globe, Users, Image as ImageIcon, Activity, X, Crosshair, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, MessageCircle, Camera, Tv, Globe, Users, Image as ImageIcon, Activity, X, Crosshair, Zap } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
@@ -14,9 +14,59 @@ const getPlatformIdentity = (platform = "") => {
   return { icon: <Globe size={16} />, name: platform || "Network" };
 };
 
+// --- THE INTELLIGENCE ENGINE ---
+const getStrategicVerdict = (ad, targetCpa) => {
+  // 1. The Hemorrhage (High Spend, 0 Sales)
+  if (ad.spend > (3 * targetCpa) && ad.conversions === 0) {
+    return {
+      title: "CAPITAL BLEED",
+      analysis: "Paying for traffic with zero intent. Shut down immediately to stop budget hemorrhage.",
+      colors: "bg-[#DC2626] text-white border-[#991B1B]"
+    };
+  }
+  // 2. The Clickbait Trap (High Clicks, Bad Landing Page)
+  if (ad.ctr > 2 && ad.lpScore < 6) {
+    return {
+      title: "THE CLICKBAIT TRAP",
+      analysis: "Good traffic, poor converter. The ad hook works, but the landing page is killing trust. Fix site friction or offer mismatch.",
+      colors: "bg-[#F59E0B] text-[#1A1A1A] border-[#D97706]"
+    };
+  }
+  // 3. Invisible Ad (Low Clicks, Good Landing Page)
+  if (ad.ctr < 1 && ad.lpScore >= 7) {
+    return {
+      title: "WEAK HOOK, STRONG SITE",
+      analysis: "The website converts, but the ad creative is invisible. Rework the first 3 seconds of the visual asset to drive more traffic.",
+      colors: "bg-[#FDE047] text-[#713F12] border-[#EAB308]"
+    };
+  }
+  // 4. Creative Fatigue (Good CTR but awful creative score)
+  if (ad.creativeScore < 4 && ad.ctr > 1.5) {
+    return {
+      title: "CREATIVE DECAY",
+      analysis: "Ad is getting clicks but platform quality score is dropping. The audience is fatiguing. Prepare new creative assets immediately.",
+      colors: "bg-[#F97316] text-white border-[#C2410C]"
+    };
+  }
+  // 5. The Golden Goose (High ROAS, Good CPA)
+  if (ad.roas > 3 && ad.cpa <= targetCpa) {
+    return {
+      title: "PROVEN WINNER",
+      analysis: "Highly efficient capital deployment. Scale budget immediately before audience fatigues.",
+      colors: "bg-[#22C55E] text-white border-[#16A34A]"
+    };
+  }
+  // Default Monitor
+  return {
+    title: "GATHERING INTELLIGENCE",
+    analysis: "Traffic is flowing but metrics are mixed. Monitor closely for 48 hours before making structural changes.",
+    colors: "bg-[#1A1A1A] text-white border-[#4A4A4A]"
+  };
+};
+
 const EditorialChronicle = () => {
   const [page, setPage] = useState(1);
-  const [selectedAd, setSelectedAd] = useState(null); // NEW: State to track which ad is open
+  const [selectedAd, setSelectedAd] = useState(null); 
   const targetCpa = 50; 
 
   const { data, isLoading } = useQuery({
@@ -44,29 +94,25 @@ const EditorialChronicle = () => {
       const cpa = parseFloat(ad.cpa) || (conversions > 0 ? spend / conversions : 0);
       const roas = parseFloat(ad.roas) || (spend > 0 ? revenue / spend : 0);
 
-      // Status Logic
       let action = 'Monitor';
       let themeClass = 'bg-[#FDE047] text-[#713F12] border-[#EAB308]'; 
       let rowClass = 'bg-[#FEFCE8] hover:bg-[#FEF9C3] border-l-8 border-l-[#FACC15]';
-      let actionNote = 'Gathering data. Observing trends.';
 
       if (spend > (3 * targetCpa) && conversions === 0) {
         action = 'Kill';
         themeClass = 'bg-[#DC2626] text-white border-[#991B1B]'; 
         rowClass = 'bg-[#FEF2F2] hover:bg-[#FEE2E2] border-l-8 border-l-[#DC2626]';
-        actionNote = 'Hemorrhaging capital. Zero return. Terminate immediately.';
         wastedSpend += spend;
       } else if (cpa <= targetCpa && days >= 5 && ctr > 2) {
         action = 'Scale';
         themeClass = 'bg-[#22C55E] text-white border-[#16A34A]'; 
         rowClass = 'bg-[#F0FDF4] hover:bg-[#DCFCE7] border-l-8 border-l-[#22C55E]';
-        actionNote = 'High-yield asset. Acquiring cheaply. Maximize budget.';
       }
 
       totalSpend += spend; totalRevenue += revenue; totalConversions += conversions;
 
-      return { 
-        ...ad, spend, revenue, roas, cpa, ctr, days, action, themeClass, rowClass, actionNote,
+      const formattedAd = { 
+        ...ad, spend, revenue, roas, cpa, ctr, days, action, themeClass, rowClass,
         brandName: ad.brand || "Unknown Brand",
         category: ad.category || "Uncategorized",
         targetAudience: ad.target_audience || "Broad Audience",
@@ -80,8 +126,14 @@ const EditorialChronicle = () => {
         creativeScore: parseFloat(ad.creative_score) || 0,
         lpScore: parseFloat(ad.landing_page_score) || 0,
         frequency: parseFloat(ad.frequency) || 0,
-        vcr: parseFloat(ad.video_completion_rate) || 0
+        vcr: parseFloat(ad.video_completion_rate) || 0,
+        conversions
       };
+
+      // Generate the automated verdict
+      formattedAd.verdict = getStrategicVerdict(formattedAd, targetCpa);
+
+      return formattedAd;
     });
 
     return {
@@ -162,7 +214,7 @@ const EditorialChronicle = () => {
               processedAds.map((ad, i) => (
               <tr 
                 key={i} 
-                onClick={() => setSelectedAd(ad)} // Trigger Side Panel on Click
+                onClick={() => setSelectedAd(ad)} 
                 className={`transition-colors group hover:opacity-80 ${ad.rowClass}`}
               >
                 <td className="p-5 align-middle">
@@ -226,7 +278,7 @@ const EditorialChronicle = () => {
               {selectedAd.brandName}
             </h2>
             
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-6">
               <div className={`inline-block px-4 py-1 text-xs font-black uppercase tracking-widest border-2 shadow-sm ${selectedAd.themeClass}`}>
                 {selectedAd.action} DIRECTIVE
               </div>
@@ -235,10 +287,16 @@ const EditorialChronicle = () => {
               </span>
             </div>
 
-            <div className="bg-white border-2 border-[#E5E5E5] p-6 mb-8 shadow-sm">
-              <p className="text-sm font-bold text-[#4A4A4A] leading-relaxed">
-                <span className="text-[#1A1A1A] font-black mr-2">SYSTEM NOTE:</span> 
-                {selectedAd.actionNote}
+            {/* --- NEW: MASSIVE HIGHLIGHTED VERDICT BLOCK --- */}
+            <div className={`border-l-8 p-6 mb-10 shadow-md ${selectedAd.verdict.colors}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Zap size={20} className="opacity-80" />
+                <h3 className="font-['Bodoni_Moda'] text-2xl font-black uppercase tracking-widest leading-none">
+                  Strategic Verdict: {selectedAd.verdict.title}
+                </h3>
+              </div>
+              <p className="font-bold text-sm leading-relaxed mt-3 opacity-90 font-['DM_Mono']">
+                {selectedAd.verdict.analysis}
               </p>
             </div>
 
@@ -276,14 +334,6 @@ const EditorialChronicle = () => {
                 <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest">Click-Rate (CTR)</p>
                 <p className="font-['DM_Mono'] text-xl font-black">{selectedAd.ctr.toFixed(2)}%</p>
               </div>
-              <div className="border-b-2 border-[#E5E5E5] pb-2">
-                <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest">Cost Per Click</p>
-                <p className="font-['DM_Mono'] text-xl font-black">${selectedAd.cpc.toFixed(2)}</p>
-              </div>
-              <div className="border-b-2 border-[#E5E5E5] pb-2">
-                <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest">Frequency</p>
-                <p className="font-['DM_Mono'] text-xl font-black">{selectedAd.frequency}x</p>
-              </div>
             </div>
 
             <h3 className="font-['Bodoni_Moda'] text-3xl font-black mb-4 border-b-2 border-[#1A1A1A] pb-2 uppercase tracking-widest">Deployment Context</h3>
@@ -297,23 +347,12 @@ const EditorialChronicle = () => {
                  <p className="font-bold text-sm uppercase flex items-center gap-1"><Users size={14}/> {selectedAd.targetAudience}</p>
                </div>
                <div>
-                 <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest mb-1">Creative Theme</p>
-                 <p className="font-bold text-sm uppercase">{selectedAd.creativeTheme}</p>
-               </div>
-               <div>
-                 <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest mb-1">System Status</p>
-                 <p className="font-bold text-sm uppercase flex items-center gap-1">
-                   <Activity size={14} className={selectedAd.campaignStatus.toLowerCase() === 'active' ? 'text-[#22C55E]' : 'text-[#DC2626]'}/> 
-                   {selectedAd.campaignStatus} ({selectedAd.days} Days)
-                 </p>
-               </div>
-               <div>
                  <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest mb-1">Creative Score</p>
-                 <p className="font-['DM_Mono'] text-lg font-black">{selectedAd.creativeScore} / 10</p>
+                 <p className={`font-['DM_Mono'] text-lg font-black ${selectedAd.creativeScore < 4 ? 'text-[#DC2626]' : 'text-[#1A1A1A]'}`}>{selectedAd.creativeScore} / 10</p>
                </div>
                <div>
                  <p className="text-[10px] font-bold text-[#737373] uppercase tracking-widest mb-1">Landing Page Score</p>
-                 <p className="font-['DM_Mono'] text-lg font-black">{selectedAd.lpScore} / 10</p>
+                 <p className={`font-['DM_Mono'] text-lg font-black ${selectedAd.lpScore < 6 ? 'text-[#DC2626]' : 'text-[#1A1A1A]'}`}>{selectedAd.lpScore} / 10</p>
                </div>
             </div>
 
