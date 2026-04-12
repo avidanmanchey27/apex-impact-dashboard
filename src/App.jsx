@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, BookOpen, MessageCircle, Camera, Tv, Globe, Users, Image as ImageIcon, Activity, X, Crosshair, Zap, Filter, Target, MousePointer2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MessageCircle, Camera, Tv, Globe, Users, Image as ImageIcon, Activity, X, Crosshair, Zap, Filter, Target, MousePointer2, BarChart3 } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
-// --- PLATFORM IDENTITY ENGINE ---
+// --- PLATFORM IDENTITY ---
 const getPlatformIdentity = (platform = "") => {
   const p = platform.toLowerCase();
   if (p.includes('meta') || p.includes('facebook')) return { icon: <MessageCircle size={16} />, name: "Meta" };
@@ -14,21 +14,21 @@ const getPlatformIdentity = (platform = "") => {
   return { icon: <Globe size={16} />, name: platform || "Network" };
 };
 
-// --- GENIUS VERDICT ENGINE ---
+// --- STRATEGIC GENIUS VERDICT ---
 const getStrategicVerdict = (ad, targetCpa) => {
   if (ad.spend > (3 * targetCpa) && ad.conversions === 0) {
-    return { title: "CAPITAL BLEED", analysis: "Critical Failure. This ad is a budget vacuum. Kill immediately.", colors: "bg-[#DC2626] text-white border-[#991B1B]" };
+    return { title: "CAPITAL BLEED", analysis: "Budget vacuum detected. Zero intent traffic. Kill immediately to save capital.", colors: "bg-[#DC2626] text-white border-[#991B1B]" };
   }
   if (ad.creativeScore < 3 && ad.lpScore < 5) {
-    return { title: "SYSTEMIC FAILURE", analysis: "Total funnel rejection. Both creative and web assets are toxic to ROAS. Rebuild from scratch.", colors: "bg-[#7F1D1D] text-white border-[#450A0A]" };
+    return { title: "SYSTEMIC FAILURE", analysis: "Total funnel rejection. Both creative and landing page are toxic to performance. Rebuild everything.", colors: "bg-[#7F1D1D] text-white border-[#450A0A]" };
   }
   if (ad.ctr > 1.5 && ad.lpScore < 6) {
-    return { title: "THE CLICKBAIT TRAP", analysis: "Hook works, site doesn't. You are paying for curiosity that isn't being converted. Fix Landing Page friction.", colors: "bg-[#F59E0B] text-[#1A1A1A] border-[#D97706]" };
+    return { title: "CLICKBAIT TRAP", analysis: "Ad hook is strong, but site experience is weak. You are losing customers at the finish line.", colors: "bg-[#F59E0B] text-black border-[#D97706]" };
   }
   if (ad.roas > 3 && ad.cpa <= targetCpa) {
-    return { title: "PROVEN WINNER", analysis: "Maximum efficiency. Capital multiplier is active. Aggressive scaling recommended.", colors: "bg-[#22C55E] text-white border-[#16A34A]" };
+    return { title: "PROVEN WINNER", analysis: "High-efficiency multiplier. Capital is working perfectly. Scale budget aggressively.", colors: "bg-[#22C55E] text-white border-[#16A34A]" };
   }
-  return { title: "MONITOR", analysis: "Insufficient data to pivot. Observing performance indicators for 48-hour trends.", colors: "bg-[#1A1A1A] text-white border-[#4A4A4A]" };
+  return { title: "MONITOR", analysis: "Mixed signals. Performance is baseline. Observe for 48 hours before pivoting.", colors: "bg-[#1A1A1A] text-white border-[#4A4A4A]" };
 };
 
 const EditorialChronicle = () => {
@@ -97,7 +97,6 @@ const EditorialChronicle = () => {
       return formatted;
     });
 
-    // STRATEGIC FILTERING
     if (activeFilter.type === 'directive') ads = ads.filter(a => a.action === activeFilter.value);
     if (activeFilter.type === 'platform') ads = ads.filter(a => a.platform === activeFilter.value);
     if (activeFilter.type === 'category') ads = ads.filter(a => a.category === activeFilter.value);
@@ -114,86 +113,59 @@ const EditorialChronicle = () => {
   }, [data, activeFilter]);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#1A1A1A] p-4 md:p-8 font-['DM_Mono']">
+    <div className="min-h-screen bg-[#FDFBF7] text-[#1A1A1A] p-4 md:p-8 font-['DM_Mono'] overflow-x-hidden">
       
-      {/* HIGH-IMPACT HEADER */}
+      {/* HEADER */}
       <header className="mb-10 border-b-8 border-[#1A1A1A] pb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
         <div>
-          <h1 className="font-['Bodoni_Moda'] text-7xl md:text-9xl font-black leading-none mb-4 tracking-tighter text-[#1A1A1A] drop-shadow-sm">
+          <h1 className="font-['Bodoni_Moda'] text-6xl md:text-8xl font-black leading-none mb-4 tracking-tighter text-[#1A1A1A]">
             APEX IMPACT
           </h1>
-          <p className="text-2xl font-['Bodoni_Moda'] italic text-[#4A4A4A] tracking-tight">
-            Strategic Capital & Growth Control
-          </p>
+          <p className="text-xl font-['Bodoni_Moda'] italic text-[#4A4A4A]">Strategic Capital Control Center</p>
         </div>
-        <div className="border-4 border-[#1A1A1A] p-8 bg-white shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] transition-transform hover:translate-x-1 hover:translate-y-1">
-          <p className="text-[12px] font-black uppercase tracking-[0.2em] text-[#737373] mb-2">Wasted Potential (Total)</p>
+        <div className="border-4 border-[#1A1A1A] p-8 bg-white shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+          <p className="text-[12px] font-black uppercase tracking-[0.2em] text-[#737373] mb-2">Wasted Potential</p>
           <p className="text-6xl font-black text-[#DC2626] tracking-tighter">${metrics.wasted}</p>
         </div>
       </header>
 
-      {/* COMMAND CENTER (FILTERS) */}
-      <div className="mb-12 flex flex-wrap gap-4 items-center bg-[#1A1A1A] p-6 shadow-2xl relative z-20">
-        <div className="flex items-center gap-3 text-[#FACC15] mr-6 border-r border-[#4A4A4A] pr-6">
-          <Filter size={24} strokeWidth={3} />
-          <span className="text-sm font-black uppercase tracking-widest">Command Matrix</span>
+      {/* FILTER BAR */}
+      <div className="mb-8 flex flex-wrap gap-3 items-center bg-[#1A1A1A] p-6 shadow-2xl relative z-20">
+        <div className="flex items-center gap-2 text-[#FACC15] mr-4 pr-4 border-r border-gray-700">
+          <Filter size={20} />
+          <span className="text-xs font-black uppercase">Matrix</span>
         </div>
-        
-        <button 
-          onClick={() => setActiveFilter({ type: 'all', value: null })}
-          className={`px-6 py-2 text-[12px] font-black border-2 transition-all ${activeFilter.type === 'all' ? 'bg-[#FACC15] text-black border-[#FACC15]' : 'bg-white text-black border-white hover:bg-[#FACC15]'}`}
-        >RESET ALL</button>
-
-        <div className="h-8 w-[1px] bg-[#4A4A4A] mx-4" />
-
-        {filterOptions.platforms?.map(p => (
-          <button 
-            key={p}
-            onClick={() => setActiveFilter({ type: 'platform', value: p })}
-            className={`px-6 py-2 text-[12px] font-black border-2 transition-all ${activeFilter.value === p ? 'bg-blue-600 text-white border-blue-600 shadow-[4px_4px_0px_0px_rgba(37,99,235,0.3)]' : 'text-white border-[#4A4A4A] hover:bg-[#333]'}`}
-          >{p.toUpperCase()}</button>
-        ))}
-
-        <div className="h-8 w-[1px] bg-[#4A4A4A] mx-4" />
-
+        <button onClick={() => setActiveFilter({ type: 'all', value: null })} className={`px-4 py-2 text-[10px] font-black border-2 ${activeFilter.type === 'all' ? 'bg-[#FACC15] text-black border-[#FACC15]' : 'bg-white text-black border-white'}`}>RESET</button>
         {['Kill', 'Scale'].map(d => (
-          <button 
-            key={d}
-            onClick={() => setActiveFilter({ type: 'directive', value: d })}
-            className={`px-6 py-2 text-[12px] font-black border-2 transition-all ${activeFilter.value === d ? 'bg-white text-black border-white' : d === 'Kill' ? 'text-red-500 border-red-500 hover:bg-red-900 hover:text-white' : 'text-green-500 border-green-500 hover:bg-green-900 hover:text-white'}`}
-          >{d.toUpperCase()}</button>
+          <button key={d} onClick={() => setActiveFilter({ type: 'directive', value: d })} className={`px-4 py-2 text-[10px] font-black border-2 ${activeFilter.value === d ? 'bg-white text-black' : 'text-white border-gray-600'}`}>{d.toUpperCase()}</button>
+        ))}
+        {filterOptions.platforms?.map(p => (
+          <button key={p} onClick={() => setActiveFilter({ type: 'platform', value: p })} className={`px-4 py-2 text-[10px] font-black border-2 ${activeFilter.value === p ? 'bg-blue-600 text-white border-blue-600' : 'text-white border-gray-600'}`}>{p.toUpperCase()}</button>
         ))}
       </div>
 
-      {/* BATTLEGROUND MATRIX (SCANNABLE) */}
+      {/* TABLE */}
       <div className="overflow-x-auto shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] border-4 border-[#1A1A1A] bg-white mb-20 relative z-10">
         <table className="w-full text-left cursor-pointer">
           <thead>
             <tr className="bg-[#1A1A1A] text-white uppercase tracking-widest text-[12px] font-black">
-              <th className="p-8">Action Directive</th>
-              <th className="p-8">Asset Branding</th>
-              <th className="p-8 text-right">Performance Impact</th>
+              <th className="p-6">Directive</th>
+              <th className="p-6">Brand</th>
+              <th className="p-6 text-right">Performance Impact</th>
             </tr>
           </thead>
           <tbody className="divide-y-4 divide-[#F5F5F5]">
-            {isLoading ? <tr><td colSpan="3" className="p-40 text-center font-black text-4xl animate-pulse uppercase">Syncing Intelligence Dossiers...</td></tr> : 
+            {isLoading ? <tr><td colSpan="3" className="p-32 text-center font-black text-3xl uppercase">Syncing...</td></tr> : 
               processedAds.map((ad, i) => (
-              <tr 
-                key={i} 
-                onClick={() => setSelectedAd(ad)} 
-                className={`transition-all hover:bg-opacity-90 active:scale-[0.99] ${ad.rowClass}`}
-              >
-                <td className="p-8"><div className={`inline-block px-6 py-2 text-sm font-black uppercase border-4 shadow-sm ${ad.themeClass}`}>{ad.action}</div></td>
-                <td className="p-8">
-                  <div className="font-['Bodoni_Moda'] font-black text-4xl leading-none mb-3 tracking-tighter">{ad.brandName}</div>
-                  <div className="text-xs font-black uppercase text-[#4A4A4A] flex gap-3 items-center">
-                    <span className="bg-[#1A1A1A] text-white px-2 py-1">{ad.identity.name}</span>
-                    <span>{ad.category}</span>
-                  </div>
+              <tr key={i} onClick={() => setSelectedAd(ad)} className={`transition-all hover:bg-opacity-90 ${ad.rowClass}`}>
+                <td className="p-6"><div className={`inline-block px-4 py-1 text-xs font-black uppercase border-2 ${ad.themeClass}`}>{ad.action}</div></td>
+                <td className="p-6">
+                  <div className="font-['Bodoni_Moda'] font-black text-3xl leading-none mb-2 tracking-tighter">{ad.brandName}</div>
+                  <div className="text-[10px] font-black uppercase text-[#4A4A4A]">{ad.category} • {ad.identity.name}</div>
                 </td>
-                <td className="p-8 text-right">
-                  <span className="font-black text-6xl tracking-tighter block leading-none mb-2">{ad.roas.toFixed(2)}x</span>
-                  <span className="text-sm font-black text-[#737373] tracking-[0.2em] uppercase">${ad.cpa.toFixed(2)} CPA</span>
+                <td className="p-6 text-right">
+                  <span className="font-black text-5xl tracking-tighter block">{ad.roas.toFixed(2)}x</span>
+                  <span className="text-xs font-black text-[#737373] tracking-[0.2em] uppercase">${ad.cpa.toFixed(2)} CPA</span>
                 </td>
               </tr>
             ))}
@@ -201,67 +173,52 @@ const EditorialChronicle = () => {
         </table>
       </div>
 
-      {/* THE DEEP DOSSIER (EVERY SINGLE DETAIL BINDING) */}
+      {/* FIXED DOSSIER PANEL - Z-index fixed for Vercel */}
       {selectedAd && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl transition-opacity" onClick={() => setSelectedAd(null)} />
-          <div className="relative w-full max-w-2xl bg-[#FDFBF7] h-full overflow-y-auto border-l-[16px] border-[#1A1A1A] p-12 md:p-16 flex flex-col shadow-2xl animate-in slide-in-from-right duration-500">
+        <div className="fixed inset-0 z-[9999] flex justify-end">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-lg" onClick={() => setSelectedAd(null)} />
+          <div className="relative w-full max-w-2xl bg-[#FDFBF7] h-full overflow-y-auto border-l-[16px] border-[#1A1A1A] p-10 md:p-14 flex flex-col shadow-2xl">
+            <button onClick={() => setSelectedAd(null)} className="absolute top-10 right-10 p-3 bg-white border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:bg-black hover:text-white transition-all"><X size={28} /></button>
             
-            <button onClick={() => setSelectedAd(null)} className="absolute top-12 right-12 p-4 bg-white border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:bg-black hover:text-white transition-all"><X size={32} /></button>
+            <p className="text-[10px] font-black text-[#737373] uppercase tracking-[0.4em] mb-4">Intelligence Dossier</p>
+            <h2 className="font-['Bodoni_Moda'] font-black text-6xl leading-[0.85] tracking-tighter mb-8">{selectedAd.brandName}</h2>
             
-            <div className="mb-12">
-              <p className="text-[12px] font-black text-[#737373] uppercase tracking-[0.4em] mb-4">Internal Asset Audit</p>
-              <h2 className="font-['Bodoni_Moda'] font-black text-7xl leading-[0.85] tracking-tighter mb-8">{selectedAd.brandName}</h2>
-              <div className="flex flex-wrap gap-4">
-                <div className={`px-6 py-2 text-sm font-black uppercase border-4 shadow-sm ${selectedAd.themeClass}`}>{selectedAd.action} DIRECTIVE</div>
-                <div className="px-6 py-2 text-sm font-black uppercase bg-[#1A1A1A] text-white border-4 border-[#1A1A1A]">{selectedAd.category}</div>
+            <div className={`p-8 border-4 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] mb-12 ${selectedAd.verdict.colors}`}>
+              <h3 className="font-['Bodoni_Moda'] text-2xl font-black mb-4 flex items-center gap-3 uppercase tracking-widest"><Zap size={24} fill="currentColor"/> {selectedAd.verdict.title}</h3>
+              <p className="font-bold text-sm leading-relaxed">{selectedAd.verdict.analysis}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 mb-12">
+              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[6px_6px_0px_0px_rgba(229,229,229,1)]">
+                <p className="text-[10px] font-black text-[#737373] uppercase mb-2">Creative Quality</p>
+                <p className={`text-4xl font-black ${selectedAd.creativeScore < 3 ? 'text-red-600' : 'text-black'}`}>{selectedAd.creativeScore.toFixed(1)}/10</p>
+              </div>
+              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[6px_6px_0px_0px_rgba(229,229,229,1)]">
+                <p className="text-[10px] font-black text-[#737373] uppercase mb-2">Landing Page Opt</p>
+                <p className={`text-4xl font-black ${selectedAd.lpScore < 5 ? 'text-red-600' : 'text-black'}`}>{selectedAd.lpScore.toFixed(1)}/10</p>
+              </div>
+              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[6px_6px_0px_0px_rgba(229,229,229,1)]">
+                <p className="text-[10px] font-black text-[#737373] uppercase mb-2">Impressions</p>
+                <p className="text-4xl font-black tracking-tighter">{selectedAd.impressions.toLocaleString()}</p>
+              </div>
+              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[6px_6px_0px_0px_rgba(229,229,229,1)]">
+                <p className="text-[10px] font-black text-[#737373] uppercase mb-2">CTR (%)</p>
+                <p className="text-4xl font-black tracking-tighter">{selectedAd.ctr.toFixed(2)}%</p>
               </div>
             </div>
 
-            {/* VERDICT CARD */}
-            <div className={`p-10 border-4 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] mb-16 ${selectedAd.verdict.colors}`}>
-              <h3 className="font-['Bodoni_Moda'] text-3xl font-black mb-6 flex items-center gap-4 uppercase tracking-[0.1em]"><Zap size={28} fill="currentColor"/> {selectedAd.verdict.title}</h3>
-              <p className="font-bold text-lg leading-relaxed">{selectedAd.verdict.analysis}</p>
-            </div>
-
-            {/* FULL DATA GRID */}
-            <h3 className="font-['Bodoni_Moda'] text-4xl font-black mb-8 border-b-8 border-[#1A1A1A] pb-4 uppercase tracking-widest">Intelligence Matrix</h3>
-            <div className="grid grid-cols-2 gap-8 mb-16">
-              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[8px_8px_0px_0px_rgba(229,229,229,1)]">
-                <p className="text-[12px] font-black text-[#737373] uppercase mb-3 flex items-center gap-2">Creative Quality</p>
-                <p className={`text-6xl font-black tracking-tighter ${selectedAd.creativeScore < 3 ? 'text-red-600' : 'text-black'}`}>{selectedAd.creativeScore.toFixed(1)}/10</p>
-              </div>
-              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[8px_8px_0px_0px_rgba(229,229,229,1)]">
-                <p className="text-[12px] font-black text-[#737373] uppercase mb-3 flex items-center gap-2">Landing Page Opt</p>
-                <p className={`text-6xl font-black tracking-tighter ${selectedAd.lpScore < 5 ? 'text-red-600' : 'text-black'}`}>{selectedAd.lpScore.toFixed(1)}/10</p>
-              </div>
-              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[8px_8px_0px_0px_rgba(229,229,229,1)]">
-                <p className="text-[12px] font-black text-[#737373] uppercase mb-3">Volume (Impressions)</p>
-                <p className="text-5xl font-black tracking-tighter">{selectedAd.impressions.toLocaleString()}</p>
-              </div>
-              <div className="bg-white p-8 border-4 border-[#E5E5E5] shadow-[8px_8px_0px_0px_rgba(229,229,229,1)]">
-                <p className="text-[12px] font-black text-[#737373] uppercase mb-3">Intent (CTR %)</p>
-                <p className="text-5xl font-black tracking-tighter">{selectedAd.ctr.toFixed(2)}%</p>
-              </div>
-            </div>
-
-            {/* THE JSON DEEP DIVE */}
-            <div className="space-y-10 border-t-8 border-[#1A1A1A] pt-12 mb-20">
-               <h4 className="text-lg font-black uppercase tracking-[0.5em] text-[#737373]">Algorithmic Audit</h4>
-               <div className="grid grid-cols-2 gap-y-10 gap-x-8">
-                 <div className="border-b-4 border-[#F5F5F5] pb-4"><span className="text-[12px] font-black text-[#737373] uppercase block mb-2">Audience Cluster</span><span className="font-black text-2xl uppercase">{selectedAd.targetAudience}</span></div>
-                 <div className="border-b-4 border-[#F5F5F5] pb-4"><span className="text-[12px] font-black text-[#737373] uppercase block mb-2">Retention (VCR)</span><span className="font-black text-2xl">{selectedAd.vcr > 0 ? `${selectedAd.vcr}%` : 'N/A'}</span></div>
-                 <div className="border-b-4 border-[#F5F5F5] pb-4"><span className="text-[12px] font-black text-[#737373] uppercase block mb-2">Platform Context</span><span className="font-black text-2xl uppercase">{selectedAd.identity.name} {selectedAd.adType}</span></div>
-                 <div className="border-b-4 border-[#F5F5F5] pb-4"><span className="text-[12px] font-black text-[#737373] uppercase block mb-2">Ad Frequency</span><span className="font-black text-2xl">{selectedAd.frequency.toFixed(2)}x</span></div>
-                 <div className="border-b-4 border-[#F5F5F5] pb-4"><span className="text-[12px] font-black text-[#737373] uppercase block mb-2">Click Efficiency (CPC)</span><span className="font-black text-2xl">${selectedAd.cpc.toFixed(2)}</span></div>
-                 <div className="border-b-4 border-[#F5F5F5] pb-4"><span className="text-[12px] font-black text-[#737373] uppercase block mb-2">Life Cycle Status</span><span className="font-black text-2xl uppercase flex items-center gap-3"><Activity size={20} className={selectedAd.campaignStatus.toLowerCase() === 'active' ? 'text-green-600' : 'text-red-600'}/> {selectedAd.campaignStatus}</span></div>
+            <div className="space-y-6 border-t-8 border-[#1A1A1A] pt-10">
+               <h4 className="text-sm font-black uppercase tracking-[0.3em] text-[#737373] mb-6">Deep Asset Audit</h4>
+               <div className="grid grid-cols-2 gap-y-8">
+                 <div><span className="text-[10px] font-black text-[#737373] uppercase block mb-1">Target Audience</span><span className="font-black text-lg">{selectedAd.targetAudience}</span></div>
+                 <div><span className="text-[10px] font-black text-[#737373] uppercase block mb-1">Video Completion</span><span className="font-black text-lg">{selectedAd.vcr > 0 ? `${selectedAd.vcr}%` : 'N/A'}</span></div>
+                 <div><span className="text-[10px] font-black text-[#737373] uppercase block mb-1">Freq / CPC</span><span className="font-black text-lg">{selectedAd.frequency.toFixed(2)}x / ${selectedAd.cpc.toFixed(2)}</span></div>
+                 <div><span className="text-[10px] font-black text-[#737373] uppercase block mb-1">Directive Status</span><span className="font-black text-lg uppercase">{selectedAd.action}</span></div>
                </div>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 };
