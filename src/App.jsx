@@ -1,67 +1,71 @@
 import React, { useState, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQuery, useQueries } from '@tanstack/react-query';
-import { X, Target, ChevronUp, ChevronDown, Search } from 'lucide-react';
+import { X, Target, ChevronUp, ChevronDown, Search, Sparkles, TrendingUp, AlertTriangle, Zap, Eye, Pause, BarChart3 } from 'lucide-react';
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 300_000, retry: 1 } } });
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 300000, retry: 1 } } });
 const API = 'https://mosaicfellowship.in/api/data/content/ads';
-const fetchPage = async (p) => { const r = await fetch(`${API}?page=${p}&limit=100`); if (!r.ok) throw new Error(r.status); return r.json(); };
+const fetchPage = async (p) => { const r = await fetch(API + '?page=' + p + '&limit=100'); if (!r.ok) throw new Error(r.status); return r.json(); };
 
-const T = {
-  bg:'#F2EDE3', surf:'#FDFAF4', surf2:'#F7F2E8',
-  bord:'rgba(42,30,12,.08)', bord2:'rgba(42,30,12,.14)',
-  txt:'#1A1508', txt2:'#6B6050', txt3:'#ADA090',
-  kill:'#B91C1C', killBg:'rgba(185,28,28,.07)',
-  scale:'#166534', scaleBg:'rgba(22,101,52,.07)',
-  upgrade:'#92400E', upgradeBg:'rgba(146,64,14,.07)',
-  optim:'#B45309', optimBg:'rgba(180,83,9,.07)',
-  pause:'#6B7280', pauseBg:'rgba(107,114,128,.07)',
-  watch:'#5B21B6', watchBg:'rgba(91,33,182,.07)',
-  monitor:'#9CA3AF', monitorBg:'rgba(156,163,175,.05)',
+const C = {
+  bg:'#F5EFE4', surf:'#FDFAF5', bord:'rgba(40,25,8,.1)', bord2:'rgba(40,25,8,.18)',
+  ink:'#1A1208', ink2:'#4A3C28', ink3:'#7A6A52', ink4:'#A89880',
+  kill:'#C0392B', killBg:'rgba(192,57,43,.08)',
+  scale:'#1A6B3C', scaleBg:'rgba(26,107,60,.07)',
+  upgrade:'#A0522D', upgradeBg:'rgba(160,82,45,.08)',
+  optim:'#C47A1E', optimBg:'rgba(196,122,30,.07)',
+  pause:'#5A6472', pauseBg:'rgba(90,100,114,.07)',
+  watch:'#5B3FA0', watchBg:'rgba(91,63,160,.07)',
+  monitor:'#8A9BAA', monitorBg:'rgba(138,155,170,.06)',
 };
-const AC = {
-  Kill:{c:T.kill,bg:T.killBg,rc:'rk'}, Scale:{c:T.scale,bg:T.scaleBg,rc:'rs'},
-  Upgrade:{c:T.upgrade,bg:T.upgradeBg,rc:'ru'}, Optimize:{c:T.optim,bg:T.optimBg,rc:'ro'},
-  Pause:{c:T.pause,bg:T.pauseBg,rc:'rp'}, Watch:{c:T.watch,bg:T.watchBg,rc:'rw'},
-  Monitor:{c:T.monitor,bg:T.monitorBg,rc:'rm'},
-};
-const CAT_C = { kill:'#B91C1C',scale:'#166534',upgrade:'#92400E',optimize:'#B45309',pause:'#6B7280',watch:'#5B21B6',info:'#ADA090' };
-const PLAT_C = { meta:'#1877F2',facebook:'#1877F2',instagram:'#E1306C',youtube:'#CC0000',google:'#188038' };
-const platC = (p='') => { const k=p.toLowerCase(); for(const n in PLAT_C) if(k.includes(n)) return PLAT_C[n]; return '#9CA3AF'; };
 
-const Fonts = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400;1,600&family=Geist:wght@300;400;500;600&display=swap');
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:${T.bg};-webkit-font-smoothing:antialiased}
-    .fd{font-family:'Cormorant Garamond',Georgia,serif}
-    .fb{font-family:'Geist',system-ui,sans-serif}
-    @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes slidein{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
-    @keyframes sk{0%{background-position:-600px 0}100%{background-position:600px 0}}
-    .au{animation:up .42s cubic-bezier(.22,.68,0,1.2) both}
-    .ain{animation:slidein .32s cubic-bezier(.22,.68,0,1.2) both}
-    .apop{animation:up .3s cubic-bezier(.22,.68,0,1.2) both}
-    .skel{background:linear-gradient(90deg,rgba(0,0,0,.04) 0%,rgba(0,0,0,.09) 50%,rgba(0,0,0,.04) 100%);background-size:600px 100%;animation:sk 1.6s infinite;border-radius:4px}
-    .row{border-left:3px solid transparent;transition:all .15s;cursor:pointer}
-    .row:hover{background:rgba(42,30,12,.03)}
-    .rk:hover{border-left-color:${T.kill};background:rgba(185,28,28,.04)}
-    .rs:hover{border-left-color:${T.scale};background:rgba(22,101,52,.04)}
-    .ru:hover{border-left-color:${T.upgrade};background:rgba(146,64,14,.04)}
-    .ro:hover{border-left-color:${T.optim};background:rgba(180,83,9,.04)}
-    .rw:hover{border-left-color:${T.watch};background:rgba(91,33,182,.04)}
-    .rp:hover{border-left-color:${T.pause}}
-    .rm:hover{border-left-color:rgba(42,30,12,.1)}
-    .fp{transition:all .13s;cursor:pointer}
-    .tab-btn{transition:all .15s;cursor:pointer;border:none;font-family:'Geist',system-ui,sans-serif}
-    .mcard{transition:transform .18s,box-shadow .18s}
-    .mcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(42,30,12,.09)!important}
-    ::-webkit-scrollbar{width:4px}
-    ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:rgba(42,30,12,.12);border-radius:4px}
-    input:focus{outline:none}
-    .sinput:focus{border-color:rgba(42,30,12,.22)!important}
-  `}</style>
-);
+const ACT = {
+  Kill:{c:C.kill,bg:C.killBg,rc:'rk',icon:AlertTriangle},
+  Scale:{c:C.scale,bg:C.scaleBg,rc:'rs',icon:TrendingUp},
+  Upgrade:{c:C.upgrade,bg:C.upgradeBg,rc:'ru',icon:Zap},
+  Optimize:{c:C.optim,bg:C.optimBg,rc:'ro',icon:Sparkles},
+  Pause:{c:C.pause,bg:C.pauseBg,rc:'rp',icon:Pause},
+  Watch:{c:C.watch,bg:C.watchBg,rc:'rw',icon:Eye},
+  Monitor:{c:C.monitor,bg:C.monitorBg,rc:'rm',icon:BarChart3},
+};
+const CAT_C = {kill:C.kill,scale:C.scale,upgrade:C.upgrade,optimize:C.optim,pause:C.pause,watch:C.watch,info:C.ink4};
+const PLAT_C = {meta:'#1877F2',facebook:'#1877F2',instagram:'#D62976',youtube:'#CC0000',google:'#1A8A47'};
+const platC = (p) => { if(!p) return '#8A9BAA'; const k=p.toLowerCase(); for(const n in PLAT_C) if(k.includes(n)) return PLAT_C[n]; return '#8A9BAA'; };
+
+const Sty = () => React.createElement('style', null, `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Lora:ital,wght@0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:${C.bg};-webkit-font-smoothing:antialiased}
+  .fh{font-family:'Playfair Display',Georgia,serif}
+  .fb{font-family:'Lora',Georgia,serif}
+  .fu{font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+  .fd{font-family:'DM Mono','Courier New',monospace}
+  @keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slidein{from{opacity:0;transform:translateX(44px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes sk{0%{background-position:-600px 0}100%{background-position:600px 0}}
+  .au{animation:fadeup .44s cubic-bezier(.22,.68,0,1.2) both}
+  .ain{animation:slidein .34s cubic-bezier(.22,.68,0,1.2) both}
+  .apop{animation:fadeup .28s cubic-bezier(.22,.68,0,1.2) both}
+  .skel{background:linear-gradient(90deg,rgba(40,25,8,.04) 0%,rgba(40,25,8,.1) 50%,rgba(40,25,8,.04) 100%);background-size:600px 100%;animation:sk 1.6s infinite;border-radius:6px}
+  .row{border-left:3px solid transparent;transition:background .14s,border-color .14s;cursor:pointer}
+  .row:hover{background:rgba(40,25,8,.03)}
+  .rk:hover{border-left-color:${C.kill};background:rgba(192,57,43,.04)}
+  .rs:hover{border-left-color:${C.scale};background:rgba(26,107,60,.04)}
+  .ru:hover{border-left-color:${C.upgrade};background:rgba(160,82,45,.04)}
+  .ro:hover{border-left-color:${C.optim};background:rgba(196,122,30,.04)}
+  .rw:hover{border-left-color:${C.watch};background:rgba(91,63,160,.04)}
+  .rp:hover{border-left-color:${C.pause}}
+  .rm:hover{border-left-color:rgba(40,25,8,.1)}
+  .hl{transition:transform .18s,box-shadow .18s;cursor:default}
+  .hl:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(40,25,8,.1)!important}
+  .hb{transition:background .13s;cursor:pointer}
+  .hb:hover{background:rgba(40,25,8,.05)!important}
+  .pill{transition:all .14s;cursor:pointer;border:none}
+  .tab{transition:all .15s;cursor:pointer;border:none;background:transparent}
+  .si:focus{outline:none;border-color:rgba(40,25,8,.28)!important}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(40,25,8,.14);border-radius:4px}
+`);
 
 const analyze = (raw, tCpa) => {
   const spend=+raw.spend||0,conv=+raw.conversions||0,rev=+raw.revenue||0;
@@ -69,32 +73,33 @@ const analyze = (raw, tCpa) => {
   const cpc=+raw.cpc||0,impr=+raw.impressions||0,freq=+raw.frequency||0;
   const cs=+raw.creative_score||0,lps=+raw.landing_page_score||0;
   const vcr=raw.video_completion_rate!=null?+raw.video_completion_rate:null;
-  const cpa=+raw.cpa||(conv>0?spend/conv:0),status=(raw.status||'').toLowerCase();
+  const cpa=+raw.cpa||(conv>0?spend/conv:0);
+  const status=(raw.status||'').toLowerCase();
   const S=[];
-  if(spend>3*tCpa&&conv===0&&days>=5)          S.push({id:'drain',  label:'Budget Drain',        cat:'kill',   w:100,desc:`${spend.toLocaleString()} spent over ${days}d with zero conversions.`});
-  if(roas>0&&roas<0.4&&days>=21)               S.push({id:'ruin',   label:'Confirmed Loss',      cat:'kill',   w:96, desc:`ROAS ${roas.toFixed(2)}x below 40p/Rs for ${days} days. Structural.`});
-  if(impr>3e6&&ctr<0.2&&conv===0&&days>=7)     S.push({id:'ghost',  label:'Ghost Ad',            cat:'kill',   w:90, desc:`${(impr/1e6).toFixed(1)}M impressions, ${ctr}% CTR, zero conversions.`});
-  if(cs<2.5&&lps<3&&conv===0&&spend>tCpa)      S.push({id:'struct', label:'Structural Failure',  cat:'kill',   w:88, desc:`Creative ${cs.toFixed(1)}/10, LP ${lps.toFixed(1)}/10, zero conversions.`});
-  if(conv>0&&rev>0&&cs<5&&roas>1.5)            S.push({id:'cceil',  label:'Creative Ceiling',    cat:'upgrade',w:95, desc:`${roas.toFixed(1)}x ROAS despite creative ${cs.toFixed(1)}/10. Upgrade creative to multiply returns.`});
-  if(conv>0&&rev>0&&lps<4.5&&roas>1.5)         S.push({id:'lpceil', label:'LP Ceiling',          cat:'upgrade',w:90, desc:`LP ${lps.toFixed(1)}/10 suppressing conversions on a ${roas.toFixed(1)}x ROAS ad.`});
-  if(cs>6&&lps<4&&ctr>2&&conv>0)               S.push({id:'lpdrag', label:'LP Drag',             cat:'upgrade',w:82, desc:`Creative ${cs.toFixed(1)}/10 driving ${ctr}% CTR but LP ${lps.toFixed(1)}/10 squanders clicks.`});
-  if(cs>7.5&&roas<2&&conv>0&&lps<5)            S.push({id:'cw',     label:'Creative Wasted on LP',cat:'upgrade',w:78,desc:`Creative ${cs.toFixed(1)}/10 working hard but LP ${lps.toFixed(1)}/10 wastes the traffic.`});
-  if(vcr!==null&&vcr<30&&conv>0&&cs<6)         S.push({id:'vhook',  label:'Video Hook Upgrade',  cat:'upgrade',w:72, desc:`${vcr}% completion. Compress value into first 3 seconds.`});
-  if(cpa>0&&cpa<=tCpa&&ctr>2&&days>=5&&conv>0) S.push({id:'proven', label:'Proven Performer',    cat:'scale',  w:100,desc:`CPA on target. CTR ${ctr}%. ${days}d validated. Ready to scale.`});
-  if(roas>=10&&conv>0)                         S.push({id:'champ',  label:'ROAS Champion',       cat:'scale',  w:96, desc:`${roas.toFixed(1)}x return. Push budget aggressively.`});
-  if(cs>7&&lps>7&&roas>3&&conv>0)              S.push({id:'ff',     label:'Full Funnel Firing',  cat:'scale',  w:88, desc:`Creative ${cs.toFixed(1)}/10, LP ${lps.toFixed(1)}/10, ROAS ${roas.toFixed(1)}x.`});
-  if(vcr!==null&&vcr>70&&conv>0&&cpa<=tCpa*1.2)S.push({id:'vid',    label:'Video Performer',     cat:'scale',  w:82, desc:`${vcr}% video completion with near-target CPA.`});
-  if(ctr>3&&lps<5&&conv===0)                   S.push({id:'lpb',    label:'LP Blocking Conv.',   cat:'optimize',w:75,desc:`${ctr}% CTR proves ad works but LP ${lps.toFixed(1)}/10 converts zero.`});
-  if(cs<3.5&&ctr<0.8&&spend>tCpa&&conv===0)    S.push({id:'dc',     label:'Creative Not Landing',cat:'optimize',w:65,desc:`Creative ${cs.toFixed(1)}/10 with ${ctr}% CTR. Not breaking through the feed.`});
-  if(impr>8e5&&ctr<0.6&&cs<6&&conv===0)        S.push({id:'mm',     label:'Audience Mismatch',   cat:'optimize',w:60,desc:`${(impr/1e6).toFixed(1)}M impressions at ${ctr}% CTR. Test new targeting.`});
-  if(vcr!==null&&vcr<20&&spend>500&&conv===0)   S.push({id:'hf',     label:'Hook Failing',        cat:'optimize',w:55,desc:`${vcr}% video completion. Rework the opening 3 seconds.`});
-  if(freq>8)                                   S.push({id:'sat',    label:'Audience Saturated',  cat:'pause',  w:72, desc:`Frequency ${freq.toFixed(1)}x. Pull back and refresh creative.`});
-  if(freq>5.5&&cpa>tCpa*0.85)                  S.push({id:'fat',    label:'Fatigue Setting In',  cat:'pause',  w:58, desc:`Frequency ${freq.toFixed(1)}x, CPA approaching ceiling.`});
-  if(conv>0&&cpa>1.8*tCpa&&days>=7)            S.push({id:'costly', label:'Costly Conversions',  cat:'watch',  w:55, desc:`CPA ${cpa.toFixed(0)} is ${(cpa/tCpa).toFixed(1)}x target.`});
-  if(cpc>12&&conv>0)                           S.push({id:'cpcm',   label:'CPC Margin Risk',     cat:'watch',  w:45, desc:`Rs${cpc.toFixed(2)}/click compressing margin.`});
-  if(roas>0&&roas<1&&days<14&&conv>0)          S.push({id:'es',     label:'Early Struggle',      cat:'watch',  w:42, desc:`ROAS ${roas.toFixed(2)}x below break-even, only ${days}d in.`});
-  if(status==='paused'&&roas>2&&cpa<=tCpa*1.3) S.push({id:'pw',     label:'Paused With Potential',cat:'watch', w:38, desc:`Paused but ROAS ${roas.toFixed(1)}x with near-target CPA.`});
-  if(days<4)                                   S.push({id:'new',    label:'Too Early',           cat:'info',   w:20, desc:`Only ${days}d of data. Need more time.`});
+  if(spend>3*tCpa&&conv===0&&days>=5) S.push({id:'drain',label:'Budget Drain',cat:'kill',w:100,desc:'Rs'+spend.toLocaleString()+' spent over '+days+'d with zero conversions.'});
+  if(roas>0&&roas<0.4&&days>=21) S.push({id:'ruin',label:'Confirmed Loss',cat:'kill',w:96,desc:'ROAS '+roas.toFixed(2)+'x below break-even for '+days+' days.'});
+  if(impr>3e6&&ctr<0.2&&conv===0&&days>=7) S.push({id:'ghost',label:'Ghost Ad',cat:'kill',w:90,desc:(impr/1e6).toFixed(1)+'M impressions, '+ctr+'% CTR, zero conversions.'});
+  if(cs<2.5&&lps<3&&conv===0&&spend>tCpa) S.push({id:'struct',label:'Structural Failure',cat:'kill',w:88,desc:'Creative '+cs.toFixed(1)+'/10, LP '+lps.toFixed(1)+'/10, zero conversions.'});
+  if(conv>0&&rev>0&&cs<5&&roas>1.5) S.push({id:'cceil',label:'Creative Ceiling',cat:'upgrade',w:95,desc:roas.toFixed(1)+'x ROAS despite creative '+cs.toFixed(1)+'/10. Upgrade creative to multiply returns.'});
+  if(conv>0&&rev>0&&lps<4.5&&roas>1.5) S.push({id:'lpceil',label:'LP Ceiling',cat:'upgrade',w:90,desc:'LP '+lps.toFixed(1)+'/10 suppressing conversions on a '+roas.toFixed(1)+'x ROAS ad.'});
+  if(cs>6&&lps<4&&ctr>2&&conv>0) S.push({id:'lpdrag',label:'LP Drag',cat:'upgrade',w:82,desc:'Creative '+cs.toFixed(1)+'/10 driving '+ctr+'% CTR but LP '+lps.toFixed(1)+'/10 squanders clicks.'});
+  if(cs>7.5&&roas<2&&conv>0&&lps<5) S.push({id:'cw',label:'Creative Wasted',cat:'upgrade',w:78,desc:'Creative '+cs.toFixed(1)+'/10 working hard but LP '+lps.toFixed(1)+'/10 wastes traffic.'});
+  if(vcr!==null&&vcr<30&&conv>0&&cs<6) S.push({id:'vhook',label:'Video Hook Upgrade',cat:'upgrade',w:72,desc:vcr+'% video completion. Compress value into first 3 seconds.'});
+  if(cpa>0&&cpa<=tCpa&&ctr>2&&days>=5&&conv>0) S.push({id:'proven',label:'Proven Performer',cat:'scale',w:100,desc:'CPA Rs'+cpa.toFixed(0)+' on target, CTR '+ctr+'%, '+days+'d validated.'});
+  if(roas>=10&&conv>0) S.push({id:'champ',label:'ROAS Champion',cat:'scale',w:96,desc:roas.toFixed(1)+'x return. Push budget aggressively.'});
+  if(cs>7&&lps>7&&roas>3&&conv>0) S.push({id:'ff',label:'Full Funnel Firing',cat:'scale',w:88,desc:'Creative '+cs.toFixed(1)+'/10, LP '+lps.toFixed(1)+'/10, ROAS '+roas.toFixed(1)+'x.'});
+  if(vcr!==null&&vcr>70&&conv>0&&cpa<=tCpa*1.2) S.push({id:'vid',label:'Video Performer',cat:'scale',w:82,desc:vcr+'% video completion with near-target CPA.'});
+  if(ctr>3&&lps<5&&conv===0) S.push({id:'lpb',label:'LP Blocking Conv.',cat:'optimize',w:75,desc:ctr+'% CTR but LP '+lps.toFixed(1)+'/10 converts zero. Fix the page.'});
+  if(cs<3.5&&ctr<0.8&&spend>tCpa&&conv===0) S.push({id:'dc',label:'Creative Not Landing',cat:'optimize',w:65,desc:'Creative '+cs.toFixed(1)+'/10 with '+ctr+'% CTR. Not breaking through.'});
+  if(impr>8e5&&ctr<0.6&&cs<6&&conv===0) S.push({id:'mm',label:'Audience Mismatch',cat:'optimize',w:60,desc:(impr/1e6).toFixed(1)+'M impressions at '+ctr+'% CTR. Test new targeting.'});
+  if(vcr!==null&&vcr<20&&spend>500&&conv===0) S.push({id:'hf',label:'Hook Failing',cat:'optimize',w:55,desc:vcr+'% video completion. Rework opening 3 seconds.'});
+  if(freq>8) S.push({id:'sat',label:'Audience Saturated',cat:'pause',w:72,desc:'Frequency '+freq.toFixed(1)+'x. Rest it and refresh creative.'});
+  if(freq>5.5&&cpa>tCpa*0.85) S.push({id:'fat',label:'Fatigue Setting In',cat:'pause',w:58,desc:'Frequency '+freq.toFixed(1)+'x. Performance will degrade soon.'});
+  if(conv>0&&cpa>1.8*tCpa&&days>=7) S.push({id:'costly',label:'Costly Conversions',cat:'watch',w:55,desc:'CPA Rs'+cpa.toFixed(0)+' is '+(cpa/tCpa).toFixed(1)+'x target.'});
+  if(cpc>12&&conv>0) S.push({id:'cpcm',label:'CPC Margin Risk',cat:'watch',w:45,desc:'Rs'+cpc.toFixed(2)+'/click compressing margin.'});
+  if(roas>0&&roas<1&&days<14&&conv>0) S.push({id:'es',label:'Early Struggle',cat:'watch',w:42,desc:'ROAS '+roas.toFixed(2)+'x below break-even, only '+days+'d in.'});
+  if(status==='paused'&&roas>2&&cpa<=tCpa*1.3) S.push({id:'pw',label:'Paused With Potential',cat:'watch',w:38,desc:'Paused but ROAS '+roas.toFixed(1)+'x with near-target CPA.'});
+  if(days<4) S.push({id:'new',label:'Too Early',cat:'info',w:20,desc:'Only '+days+'d of data. Need at least 5 days to judge.'});
   S.sort((a,b)=>b.w-a.w);
   let action='Monitor';
   const has=c=>S.some(s=>s.cat===c);
@@ -107,109 +112,106 @@ const analyze = (raw, tCpa) => {
   return{action,signals:S};
 };
 
-const fmt=(n,p='Rs')=>{if(n==null||isNaN(n))return'--';if(n>=1e7)return`${p}${(n/1e7).toFixed(2)}Cr`;if(n>=1e5)return`${p}${(n/1e5).toFixed(2)}L`;if(n>=1e3)return`${p}${(n/1e3).toFixed(1)}K`;return`${p}${Math.round(n).toLocaleString()}`;};
-const fmtPct=n=>isNaN(+n)?'--':`${(+n).toFixed(2)}%`;
-const Sk=({w='100%',h=13})=><div className="skel" style={{width:w,height:h}}/>;
+const fmt=(n,p)=>{p=p||'Rs';if(n==null||isNaN(n))return'--';if(n>=1e7)return p+(n/1e7).toFixed(2)+'Cr';if(n>=1e5)return p+(n/1e5).toFixed(2)+'L';if(n>=1e3)return p+(n/1e3).toFixed(1)+'K';return p+Math.round(n).toLocaleString();};
+const fmtPct=n=>isNaN(+n)?'--':(+n).toFixed(2)+'%';
+const Sk=({w,h})=>React.createElement('div',{className:'skel',style:{width:w||'100%',height:h||13}});
 
-const Donut = ({ data, size=128 }) => {
-  const R=46,cx=size/2,cy=size/2,circ=2*Math.PI*R;
+const Donut=({data,size})=>{
+  size=size||120;
+  const R=44,cx=size/2,cy=size/2,circ=2*Math.PI*R;
   const total=data.reduce((s,d)=>s+d.v,0);
   if(!total)return null;
   let off=0;
-  const segs=data.map(d=>{const len=(d.v/total)*circ;const s={...d,off,len};off+=len;return s;});
-  return(
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{transform:'rotate(-90deg)'}}>
-      <circle cx={cx} cy={cy} r={R} fill="none" stroke={T.bord} strokeWidth={11}/>
-      {segs.filter(s=>s.v>0).map((s,i)=>(
-        <circle key={i} cx={cx} cy={cy} r={R} fill="none" stroke={s.color} strokeWidth={11}
-          strokeDasharray={`${s.len} ${circ-s.len}`} strokeDashoffset={-s.off} strokeLinecap="butt"/>
-      ))}
-    </svg>
+  const segs=data.map(d=>{const len=(d.v/total)*circ;const s=Object.assign({},d,{off,len});off+=len;return s;});
+  return React.createElement('svg',{width:size,height:size,viewBox:'0 0 '+size+' '+size,style:{transform:'rotate(-90deg)'}},
+    React.createElement('circle',{cx,cy,r:R,fill:'none',stroke:C.bord,strokeWidth:12}),
+    ...segs.filter(s=>s.v>0).map((s,i)=>React.createElement('circle',{key:i,cx,cy,r:R,fill:'none',stroke:s.color,strokeWidth:12,strokeDasharray:s.len+' '+(circ-s.len),strokeDashoffset:-s.off,strokeLinecap:'butt'}))
   );
 };
 
-const ScoreQuad = ({ cs, lps, action }) => {
-  const W=156,P=22,inner=W-P*2,mid=P+inner/2;
-  const x=P+(lps/10)*inner, y=P+((10-cs)/10)*inner;
-  const dc=AC[action]?.c||T.txt3;
-  return(
-    <svg width={W} height={W} viewBox={`0 0 ${W} ${W}`}>
-      <rect x={P} y={P} width={inner/2} height={inner/2} fill="rgba(185,28,28,.05)" rx={2}/>
-      <rect x={mid} y={P} width={inner/2} height={inner/2} fill="rgba(180,83,9,.05)" rx={2}/>
-      <rect x={P} y={mid} width={inner/2} height={inner/2} fill="rgba(91,33,182,.05)" rx={2}/>
-      <rect x={mid} y={mid} width={inner/2} height={inner/2} fill="rgba(22,101,52,.07)" rx={2}/>
-      <line x1={mid} y1={P} x2={mid} y2={W-P} stroke={T.bord2} strokeWidth={0.5}/>
-      <line x1={P} y1={mid} x2={W-P} y2={mid} stroke={T.bord2} strokeWidth={0.5}/>
-      <rect x={P} y={P} width={inner} height={inner} fill="none" stroke={T.bord2} strokeWidth={0.5} rx={3}/>
-      <text x={P+4} y={P+9} fontSize={6.5} fill="rgba(185,28,28,.5)" fontFamily="Geist,sans-serif">Both weak</text>
-      <text x={W-P-3} y={P+9} textAnchor="end" fontSize={6.5} fill="rgba(180,83,9,.5)" fontFamily="Geist,sans-serif">LP strong</text>
-      <text x={P+4} y={W-P-4} fontSize={6.5} fill="rgba(91,33,182,.5)" fontFamily="Geist,sans-serif">Creative strong</text>
-      <text x={W-P-3} y={W-P-4} textAnchor="end" fontSize={6.5} fill="rgba(22,101,52,.5)" fontFamily="Geist,sans-serif">Both strong</text>
-      <text x={W/2} y={W-2} textAnchor="middle" fontSize={7} fill={T.txt3} fontFamily="Geist,sans-serif">LP Score</text>
-      <text x={5} y={W/2} textAnchor="middle" fontSize={7} fill={T.txt3} fontFamily="Geist,sans-serif" transform={`rotate(-90,5,${W/2})`}>Creative</text>
-      <circle cx={x} cy={y} r={9} fill={dc} opacity={0.15}/>
-      <circle cx={x} cy={y} r={5} fill={dc} opacity={0.9}/>
-      <circle cx={x} cy={y} r={5} fill="none" stroke="white" strokeWidth={1} opacity={0.5}/>
-    </svg>
+const ScoreMap=({cs,lps,action})=>{
+  const W=156,P=24,inner=W-P*2,mid=P+inner/2;
+  const x=P+(lps/10)*inner,y=P+((10-cs)/10)*inner;
+  const dc=ACT[action]?ACT[action].c:C.ink3;
+  return React.createElement('svg',{width:W,height:W,viewBox:'0 0 '+W+' '+W},
+    React.createElement('rect',{x:P,y:P,width:inner/2,height:inner/2,fill:'rgba(192,57,43,.06)',rx:3}),
+    React.createElement('rect',{x:mid,y:P,width:inner/2,height:inner/2,fill:'rgba(196,122,30,.06)',rx:3}),
+    React.createElement('rect',{x:P,y:mid,width:inner/2,height:inner/2,fill:'rgba(91,63,160,.06)',rx:3}),
+    React.createElement('rect',{x:mid,y:mid,width:inner/2,height:inner/2,fill:'rgba(26,107,60,.08)',rx:3}),
+    React.createElement('line',{x1:mid,y1:P,x2:mid,y2:W-P,stroke:C.bord2,strokeWidth:0.5}),
+    React.createElement('line',{x1:P,y1:mid,x2:W-P,y2:mid,stroke:C.bord2,strokeWidth:0.5}),
+    React.createElement('rect',{x:P,y:P,width:inner,height:inner,fill:'none',stroke:C.bord2,strokeWidth:0.7,rx:4}),
+    React.createElement('text',{x:P+5,y:P+10,fontSize:7,fill:'rgba(192,57,43,.55)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'Both weak'),
+    React.createElement('text',{x:W-P-4,y:P+10,textAnchor:'end',fontSize:7,fill:'rgba(196,122,30,.55)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'LP strong'),
+    React.createElement('text',{x:P+5,y:W-P-4,fontSize:7,fill:'rgba(91,63,160,.55)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'Creative strong'),
+    React.createElement('text',{x:W-P-4,y:W-P-4,textAnchor:'end',fontSize:7,fill:'rgba(26,107,60,.6)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'Both strong'),
+    React.createElement('circle',{cx:x,cy:y,r:10,fill:dc,opacity:0.14}),
+    React.createElement('circle',{cx:x,cy:y,r:5.5,fill:dc,opacity:0.9}),
+    React.createElement('circle',{cx:x,cy:y,r:5.5,fill:'none',stroke:'rgba(255,255,255,.7)',strokeWidth:1.2})
   );
 };
 
-const RoasBar = ({ roas }) => {
+const RoasMini=({roas})=>{
   const pct=Math.min((roas/20)*100,100);
-  const color=roas>=2?T.scale:roas>0&&roas<1?T.kill:T.optim;
-  return(<div style={{marginTop:3,height:2,background:T.bord,borderRadius:1,overflow:'hidden',width:58}}>
-    <div style={{height:'100%',width:`${pct}%`,background:color,borderRadius:1}}/>
-  </div>);
+  const color=roas>=2?C.scale:roas>0&&roas<1?C.kill:C.optim;
+  return React.createElement('div',{style:{marginTop:4,height:2,background:C.bord,borderRadius:1,overflow:'hidden',width:60}},
+    React.createElement('div',{style:{height:'100%',width:pct+'%',background:color,borderRadius:1,transition:'width .6s ease'}}));
 };
 
-const PlatformBars = ({ ads }) => {
+const PlatBars=({ads})=>{
   const pm=useMemo(()=>{
     const m={};
     ads.forEach(a=>{const p=a.platform||'Unknown';if(!m[p])m[p]={spend:0,rev:0};m[p].spend+=a.spend;m[p].rev+=a.revenue;});
     return Object.entries(m).sort((a,b)=>b[1].spend-a[1].spend).slice(0,5);
   },[ads]);
-  const maxS=pm[0]?.[1]?.spend||1;
-  return(
-    <div style={{padding:'18px 40px 22px',borderBottom:`1px solid ${T.bord}`,background:T.surf}}>
-      <p style={{fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:T.txt3,fontWeight:500,marginBottom:14}}>Platform performance</p>
-      <div style={{display:'flex',flexDirection:'column',gap:9}}>
-        {pm.map(([name,d],i)=>{
-          const roas=d.spend>0?d.rev/d.spend:0,pct=(d.spend/maxS)*100,c=platC(name);
-          return(
-            <div key={name} className="au" style={{animationDelay:`${i*50}ms`,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{width:70,textAlign:'right',fontSize:11,fontWeight:500,color:T.txt2,flexShrink:0}}>{name}</span>
-              <div style={{flex:1,height:5,background:T.bord,borderRadius:3,overflow:'hidden'}}>
-                <div style={{height:'100%',width:`${pct}%`,background:c,borderRadius:3,transition:'width .8s cubic-bezier(.22,.68,0,1.2)'}}/>
-              </div>
-              <div style={{width:96,flexShrink:0,display:'flex',justifyContent:'space-between'}}>
-                <span style={{fontSize:11,color:T.txt3}}>{fmt(d.spend)}</span>
-                <span style={{fontSize:11,fontWeight:600,color:roas>=2?T.scale:roas<1?T.kill:T.txt2}}>{roas.toFixed(1)}x</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+  const maxS=pm[0]?pm[0][1].spend:1;
+  return React.createElement('div',{style:{padding:'20px 40px 24px',borderBottom:'1px solid '+C.bord,background:C.surf}},
+    React.createElement('p',{className:'fu',style:{fontSize:10,textTransform:'uppercase',letterSpacing:'.14em',color:C.ink3,fontWeight:700,marginBottom:16}},'Platform Performance'),
+    React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+      pm.map(function([name,d],i){
+        const roas=d.spend>0?d.rev/d.spend:0,pct=(d.spend/maxS)*100,col=platC(name);
+        return React.createElement('div',{key:name,className:'au',style:{animationDelay:i*50+'ms',display:'flex',alignItems:'center',gap:14}},
+          React.createElement('span',{className:'fu',style:{width:74,textAlign:'right',fontSize:12,fontWeight:700,color:C.ink2,flexShrink:0}},name),
+          React.createElement('div',{style:{flex:1,height:6,background:C.bord,borderRadius:3,overflow:'hidden'}},
+            React.createElement('div',{style:{height:'100%',width:pct+'%',background:col,borderRadius:3,transition:'width .9s cubic-bezier(.22,.68,0,1.2)',transitionDelay:i*60+'ms'}})),
+          React.createElement('div',{style:{width:100,flexShrink:0,display:'flex',justifyContent:'space-between',gap:8}},
+            React.createElement('span',{className:'fd',style:{fontSize:11,color:C.ink3}},fmt(d.spend)),
+            React.createElement('span',{className:'fd',style:{fontSize:12,fontWeight:500,color:roas>=2?C.scale:roas<1?C.kill:C.ink2}},roas.toFixed(1)+'x')));
+      })
+    )
   );
 };
 
-const MCard = ({ label, value, sub, color, delay=0, accent }) => (
-  <div className="au mcard" style={{animationDelay:`${delay}ms`,background:T.surf,border:`1px solid ${T.bord}`,borderRadius:12,padding:'14px 16px',
-    borderTop:accent?`3px solid ${accent}`:`1px solid ${T.bord}`,boxShadow:'0 1px 3px rgba(42,30,12,.04)'}}>
-    <p style={{fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:T.txt3,fontWeight:500,marginBottom:7}}>{label}</p>
-    <p className="fd" style={{fontSize:26,fontWeight:300,lineHeight:1,color:color||T.txt,fontVariantNumeric:'tabular-nums',letterSpacing:'-.02em'}}>{value}</p>
-    {sub&&<p style={{fontSize:11,color:T.txt3,marginTop:4,fontWeight:300}}>{sub}</p>}
-  </div>
+const MCard=({label,value,sub,color,delay,accent,mono})=>{
+  delay=delay||0;
+  return React.createElement('div',{className:'au hl',style:{animationDelay:delay+'ms',background:C.surf,border:'1px solid '+C.bord,borderRadius:14,padding:'16px 18px',boxShadow:'0 1px 4px rgba(40,25,8,.04)',borderTop:accent?'3px solid '+accent:'1px solid '+C.bord}},
+    React.createElement('p',{className:'fu',style:{fontSize:10,textTransform:'uppercase',letterSpacing:'.14em',color:C.ink3,fontWeight:700,marginBottom:8}},label),
+    React.createElement('p',{className:mono?'fd':'fh',style:{fontSize:28,fontWeight:mono?500:700,lineHeight:1,color:color||C.ink,fontVariantNumeric:'tabular-nums',letterSpacing:'-.02em'}},value),
+    sub&&React.createElement('p',{className:'fu',style:{fontSize:11,color:C.ink3,marginTop:5,fontWeight:400,lineHeight:1.4}},sub)
+  );
+};
+
+const Intro=({onDismiss})=>React.createElement('div',{className:'au',style:{margin:'28px 40px 0',padding:'28px 32px',background:'linear-gradient(135deg,#FDF8EE 0%,#F5EBD5 100%)',border:'1.5px solid rgba(160,82,45,.22)',borderRadius:16,boxShadow:'0 4px 20px rgba(160,82,45,.1)',position:'relative',overflow:'hidden'}},
+  React.createElement('div',{style:{position:'absolute',right:-30,top:-30,width:140,height:140,borderRadius:'50%',background:'rgba(160,82,45,.05)'}}),
+  React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:20}},
+    React.createElement('div',{style:{flex:1}},
+      React.createElement('p',{className:'fu',style:{fontSize:10,textTransform:'uppercase',letterSpacing:'.16em',color:C.upgrade,fontWeight:700,marginBottom:10}},'What is this dashboard?'),
+      React.createElement('h2',{className:'fh',style:{fontSize:26,fontWeight:700,color:C.ink,lineHeight:1.3,marginBottom:12}},'Your brand runs hundreds of ads. ',React.createElement('span',{style:{color:C.upgrade,fontStyle:'italic'}},'Not all deserve to keep running.')),
+      React.createElement('p',{className:'fu',style:{fontSize:13,color:C.ink2,lineHeight:1.75,maxWidth:680,marginBottom:16}},'This system reads all your active ad campaigns and answers: which ads are ',React.createElement('strong',{style:{color:C.kill,fontWeight:700}},'wasting money'),' and should be stopped, which are ',React.createElement('strong',{style:{color:C.scale,fontWeight:700}},'performing well'),' and deserve more budget, and which are ',React.createElement('strong',{style:{color:C.upgrade,fontWeight:700}},'almost working'),' where one fix could unlock big returns.'),
+      React.createElement('div',{style:{display:'flex',gap:16,flexWrap:'wrap'}},
+        [{dot:C.kill,text:'Kill: Stop it. Burning money.'},{dot:C.scale,text:'Scale: Double down. It prints money.'},{dot:C.upgrade,text:'Upgrade: Fix one thing, big returns.'},{dot:C.optim,text:'Optimize: Specific technical fix needed.'},{dot:C.watch,text:'Watch: Converting but needs monitoring.'},{dot:C.pause,text:'Pause: Audience is tired of it.'}].map(function(x){
+          return React.createElement('div',{key:x.text,style:{display:'flex',alignItems:'center',gap:8}},
+            React.createElement('span',{style:{width:8,height:8,borderRadius:'50%',background:x.dot,flexShrink:0,display:'block',boxShadow:'0 0 0 2px '+x.dot+'30'}}),
+            React.createElement('span',{className:'fu',style:{fontSize:12,color:C.ink2}},x.text));
+        })
+      )
+    ),
+    React.createElement('button',{onClick:onDismiss,className:'hb',style:{background:'rgba(40,25,8,.07)',border:'1px solid '+C.bord,borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,marginTop:2}},
+      React.createElement(X,{size:14,color:C.ink2}))
+  )
 );
 
-const Tab = ({ active, onClick, children }) => (
-  <button onClick={onClick} className="tab-btn" style={{padding:'8px 14px',fontSize:12,fontWeight:active?500:400,
-    color:active?T.txt:T.txt3,background:'transparent',borderBottom:`2px solid ${active?T.txt:'transparent'}`}}>
-    {children}
-  </button>
-);
-
-const Dashboard = () => {
+const Dashboard=()=>{
   const [tCpa,setTCpa]=useState(50);
   const [editCpa,setEditCpa]=useState(false);
   const [sel,setSel]=useState(null);
@@ -219,34 +221,44 @@ const Dashboard = () => {
   const [search,setSearch]=useState('');
   const [sk,setSk]=useState('spend');
   const [sd,setSd]=useState(-1);
+  const [intro,setIntro]=useState(true);
 
   const p1=useQuery({queryKey:['ads',1],queryFn:()=>fetchPage(1)});
-  const nPgs=p1.data?.pagination?.total_pages||1;
-  const rest=useQueries({queries:Array.from({length:Math.max(0,nPgs-1)},(_,i)=>({queryKey:['ads',i+2],queryFn:()=>fetchPage(i+2),enabled:p1.isSuccess&&nPgs>1}))});
+  const nPgs=p1.data&&p1.data.pagination?p1.data.pagination.total_pages:1;
+  const rest=useQueries({queries:Array.from({length:Math.max(0,nPgs-1)},function(_,i){return{queryKey:['ads',i+2],queryFn:()=>fetchPage(i+2),enabled:p1.isSuccess&&nPgs>1};})});
   const loaded=1+rest.filter(q=>q.isSuccess).length;
   const fetching=p1.isSuccess&&loaded<nPgs;
 
-  const allRaw=useMemo(()=>{const rows=[];if(p1.data?.data)rows.push(...p1.data.data);rest.forEach(q=>{if(q.data?.data)rows.push(...q.data.data);});return rows;},[p1.data,rest]);
+  const allRaw=useMemo(()=>{
+    const rows=[];
+    if(p1.data&&p1.data.data)rows.push(...p1.data.data);
+    rest.forEach(q=>{if(q.data&&q.data.data)rows.push(...q.data.data);});
+    return rows;
+  },[p1.data,rest]);
 
-  const {ads,metrics,platforms}=useMemo(()=>{
+  const result=useMemo(()=>{
     if(!allRaw.length)return{ads:[],metrics:null,platforms:[]};
     const proc=allRaw.map(raw=>{
       const spend=+raw.spend||0,revenue=+raw.revenue||0,conv=+raw.conversions||0;
       const roas=+raw.roas||0,cpa=(+raw.cpa)||(conv>0?spend/conv:0);
-      const {action,signals}=analyze(raw,tCpa);
-      return{...raw,spend,revenue,conv,roas,cpa,ctr:+raw.ctr||0,cpc:+raw.cpc||0,
+      const res=analyze(raw,tCpa);
+      return Object.assign({},raw,{spend,revenue,conv,roas,cpa,ctr:+raw.ctr||0,cpc:+raw.cpc||0,
         impressions:+raw.impressions||0,clicks:+raw.clicks||0,days:+raw.days_running||0,
         freq:+raw.frequency||0,cs:+raw.creative_score||0,lps:+raw.landing_page_score||0,
-        vcr:raw.video_completion_rate!=null?+raw.video_completion_rate:null,action,signals};
+        vcr:raw.video_completion_rate!=null?+raw.video_completion_rate:null,
+        action:res.action,signals:res.signals});
     });
     const by=a=>proc.filter(x=>x.action===a);
-    const kills=by('Kill'),totalSpend=proc.reduce((s,a)=>s+a.spend,0);
-    const totalRev=proc.reduce((s,a)=>s+a.revenue,0),wasted=kills.reduce((s,a)=>s+a.spend,0);
+    const kills=by('Kill'),ts=proc.reduce((s,a)=>s+a.spend,0);
+    const tr=proc.reduce((s,a)=>s+a.revenue,0),w=kills.reduce((s,a)=>s+a.spend,0);
     const pSet=new Set(proc.map(a=>a.platform).filter(Boolean));
-    return{ads:proc,metrics:{total:proc.length,totalSpend,totalRev,wasted,roas:totalSpend>0?totalRev/totalSpend:0,
-      kills:kills.length,scales:by('Scale').length,upgrades:by('Upgrade').length,optims:by('Optimize').length,
-      wasteRatio:totalSpend>0?wasted/totalSpend:0},platforms:Array.from(pSet).sort()};
+    return{ads:proc,metrics:{total:proc.length,totalSpend:ts,totalRev:tr,wasted:w,
+      roas:ts>0?tr/ts:0,kills:kills.length,scales:by('Scale').length,
+      upgrades:by('Upgrade').length,optims:by('Optimize').length,
+      wasteRatio:ts>0?w/ts:0},platforms:Array.from(pSet).sort()};
   },[allRaw,tCpa]);
+
+  const ads=result.ads,metrics=result.metrics,platforms=result.platforms;
 
   const displayed=useMemo(()=>{
     let list=[...ads];
@@ -254,344 +266,211 @@ const Dashboard = () => {
     if(fPlat!=='all')list=list.filter(a=>a.platform===fPlat);
     if(search.trim())list=list.filter(a=>(a.brand||a.ad_id||'').toLowerCase().includes(search.toLowerCase().trim()));
     const ORD={Kill:0,Scale:1,Upgrade:2,Optimize:3,Watch:4,Pause:5,Monitor:6};
-    list.sort((a,b)=>{if(fAct==='all'){const d=(ORD[a.action]??6)-(ORD[b.action]??6);if(d!==0)return d;}return((b[sk]??0)-(a[sk]??0))*sd;});
+    list.sort((a,b)=>{if(fAct==='all'){const d=(ORD[a.action]||0)-(ORD[b.action]||0);if(d!==0)return d;}return((b[sk]||0)-(a[sk]||0))*sd;});
     return list;
   },[ads,fAct,fPlat,search,sk,sd]);
 
   const handleSort=k=>{if(sk===k)setSd(d=>d*-1);else{setSk(k);setSd(-1);}};
-  const SC=({k})=>sk===k?(sd===-1?<ChevronDown size={9} style={{display:'inline',marginLeft:1,opacity:.5}}/>:<ChevronUp size={9} style={{display:'inline',marginLeft:1,opacity:.5}}/>):null;
+  const SC=({k})=>sk===k?(sd===-1?React.createElement(ChevronDown,{size:9,style:{display:'inline',marginLeft:2,opacity:.5}}):React.createElement(ChevronUp,{size:9,style:{display:'inline',marginLeft:2,opacity:.5}})):null;
 
   const donutData=useMemo(()=>{
     if(!ads.length)return[];
     const cnt={};
     ads.forEach(a=>{cnt[a.action]=(cnt[a.action]||0)+1;});
-    return Object.entries(cnt).filter(([,v])=>v>0).map(([k,v])=>({label:k,v,color:AC[k]?.c||T.txt3}));
+    return Object.entries(cnt).filter(([,v])=>v>0).map(([k,v])=>({label:k,v,color:ACT[k]?ACT[k].c:C.ink3}));
   },[ads]);
 
-  return(
-    <div className="fb" style={{minHeight:'100vh',background:T.bg,color:T.txt}}>
-      <Fonts/>
-      {fetching&&(
-        <div style={{position:'fixed',top:0,left:0,right:0,height:2,zIndex:100}}>
-          <div style={{height:'100%',background:T.upgrade,width:`${(loaded/nPgs)*100}%`,transition:'width .4s ease',borderRadius:'0 1px 1px 0',opacity:.75}}/>
-        </div>
-      )}
+  const h=React.createElement;
+  const TH=({l,k})=>h('th',{key:l,onClick:()=>k&&handleSort(k),style:{padding:'10px 16px',textAlign:'left',fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'.14em',color:C.ink3,cursor:k?'pointer':'default',userSelect:'none',whiteSpace:'nowrap'}},l,h(SC,{k}));
 
-      {/* NAV */}
-      <div style={{background:T.surf,borderBottom:`1px solid ${T.bord}`,padding:'14px 40px',position:'sticky',top:0,zIndex:20,
-        display:'flex',alignItems:'center',gap:14,boxShadow:'0 1px 8px rgba(42,30,12,.05)'}}>
-        <h1 className="fd" style={{fontSize:20,fontWeight:400,fontStyle:'italic',color:T.txt,whiteSpace:'nowrap'}}>Ad Intelligence</h1>
-        <div style={{width:1,height:16,background:T.bord}}/>
-        <span style={{fontSize:11,color:T.txt3,whiteSpace:'nowrap'}}>
-          {metrics?.total.toLocaleString()||'--'} ads
-          {fetching&&<span style={{color:T.upgrade,marginLeft:6}}>{loaded}/{nPgs} pages</span>}
-        </span>
-        <div style={{flex:1,maxWidth:280,position:'relative'}}>
-          <Search size={12} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:T.txt3}}/>
-          <input className="sinput" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search brands..."
-            style={{width:'100%',paddingLeft:28,paddingRight:10,height:32,border:`1px solid ${T.bord}`,borderRadius:8,
-              background:T.bg,fontSize:12,color:T.txt,fontFamily:'inherit',transition:'border-color .15s'}}/>
-        </div>
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:7,padding:'6px 12px',border:`1px solid ${T.bord}`,borderRadius:8,background:T.bg,cursor:'text'}} onClick={()=>setEditCpa(true)}>
-          <Target size={12} style={{color:T.txt3}}/>
-          <span style={{fontSize:10,color:T.txt3,textTransform:'uppercase',letterSpacing:'.07em',fontWeight:500}}>CPA</span>
-          {editCpa
-            ?<input type="number" value={tCpa} autoFocus onChange={e=>setTCpa(Math.max(1,+e.target.value))} onBlur={()=>setEditCpa(false)}
-               style={{width:52,background:'transparent',border:'none',outline:'none',color:T.txt,fontSize:13,fontWeight:500,textAlign:'right',fontFamily:'inherit'}}/>
-            :<span style={{fontSize:13,fontWeight:500,color:T.txt}}>Rs{tCpa}</span>}
-        </div>
-      </div>
+  return h('div',{className:'fu',style:{minHeight:'100vh',background:C.bg,color:C.ink}},
+    h(Sty,null),
+    fetching&&h('div',{style:{position:'fixed',top:0,left:0,right:0,height:2,zIndex:100}},
+      h('div',{style:{height:'100%',background:C.upgrade,width:(loaded/nPgs*100)+'%',transition:'width .4s ease',borderRadius:'0 1px 1px 0',opacity:.8}})),
 
-      {/* HERO */}
-      <div style={{padding:'36px 40px 32px',borderBottom:`1px solid ${T.bord}`}}>
-        {p1.isLoading?(
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr) 200px',gap:12}}>
-            {[1,2,3,4,5].map(i=><Sk key={i} h={76}/>)}
-          </div>
-        ):metrics&&(
-          <div style={{display:'flex',gap:20,alignItems:'flex-start',flexWrap:'wrap'}}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(120px,1fr))',gap:10,flex:'1 1 380px'}}>
-              <MCard label="Capital at risk" value={fmt(metrics.wasted)} sub={`${metrics.kills} ads to kill`} color={T.kill} delay={0} accent={T.kill}/>
-              <MCard label="Total revenue" value={fmt(metrics.totalRev)} sub={`${metrics.total} ads`} delay={50}/>
-              <MCard label="Overall ROAS" value={`${metrics.roas.toFixed(2)}x`} sub="blended" color={metrics.roas>=2?T.scale:metrics.roas<1?T.kill:T.txt} delay={100} accent={metrics.roas>=2?T.scale:undefined}/>
-              <MCard label="Scale ready" value={metrics.scales} sub="increase budget" color={T.scale} delay={150} accent={T.scale}/>
-              <MCard label="Upgrade" value={metrics.upgrades} sub="latent potential" color={T.upgrade} delay={200} accent={T.upgrade}/>
-              <MCard label="Optimize" value={metrics.optims} sub="fix and re-test" color={T.optim} delay={250}/>
-            </div>
-            <div className="au" style={{animationDelay:'180ms',background:T.surf,border:`1px solid ${T.bord}`,borderRadius:14,
-              padding:'18px 20px',display:'flex',gap:18,alignItems:'center',flexShrink:0,boxShadow:'0 1px 4px rgba(42,30,12,.04)'}}>
-              <div style={{position:'relative',flexShrink:0}}>
-                <Donut data={donutData} size={120}/>
-                <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                  <span className="fd" style={{fontSize:22,fontWeight:300,color:T.txt}}>{metrics.total}</span>
-                  <span style={{fontSize:9,color:T.txt3,textTransform:'uppercase',letterSpacing:'.08em',marginTop:1}}>total</span>
-                </div>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:5,minWidth:108}}>
-                {donutData.map(d=>(
-                  <div key={d.label} className="fp" onClick={()=>setFAct(fAct===d.label?'all':d.label)}
-                    style={{display:'flex',alignItems:'center',gap:6,padding:'3px 6px',borderRadius:6,
-                      background:fAct===d.label?AC[d.label]?.bg:'transparent'}}>
-                    <span style={{width:7,height:7,borderRadius:2,background:d.color,flexShrink:0,display:'block'}}/>
-                    <span style={{fontSize:11,color:fAct===d.label?d.color:T.txt2,fontWeight:fAct===d.label?500:400}}>{d.label}</span>
-                    <span style={{marginLeft:'auto',fontSize:10,color:T.txt3,fontVariantNumeric:'tabular-nums'}}>{d.v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+    /* NAV */
+    h('nav',{style:{background:C.surf,borderBottom:'1px solid '+C.bord,padding:'14px 40px',position:'sticky',top:0,zIndex:20,display:'flex',alignItems:'center',gap:14,boxShadow:'0 2px 12px rgba(40,25,8,.06)'}},
+      h('div',null,
+        h('h1',{className:'fh',style:{fontSize:19,fontWeight:700,color:C.ink,lineHeight:1,letterSpacing:'-.02em'}},'Ad Intelligence'),
+        h('span',{className:'fu',style:{fontSize:10,color:C.ink3,marginTop:2,display:'block'}},
+          (metrics?metrics.total.toLocaleString():'--')+' ads',
+          fetching&&h('span',{style:{color:C.upgrade,marginLeft:6}},loaded+'/'+nPgs+' pages loading...'))),
+      h('div',{style:{width:1,height:24,background:C.bord}}),
+      h('div',{style:{flex:1,maxWidth:280,position:'relative'}},
+        h(Search,{size:13,style:{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:C.ink3}}),
+        h('input',{className:'si',value:search,onChange:e=>setSearch(e.target.value),placeholder:'Search brands...',style:{width:'100%',paddingLeft:32,paddingRight:12,height:34,border:'1.5px solid '+C.bord,borderRadius:9,background:'rgba(40,25,8,.03)',fontSize:12,color:C.ink,fontFamily:'Plus Jakarta Sans,system-ui,sans-serif',transition:'all .15s'}})),
+      h('div',{style:{marginLeft:'auto',display:'flex',alignItems:'center',gap:8,padding:'7px 14px',border:'1.5px solid '+C.bord,borderRadius:9,background:'rgba(40,25,8,.03)',cursor:'text'},onClick:()=>setEditCpa(true)},
+        h(Target,{size:13,style:{color:C.ink3}}),
+        h('span',{className:'fu',style:{fontSize:10,color:C.ink3,textTransform:'uppercase',letterSpacing:'.1em',fontWeight:700}},'Target CPA'),
+        editCpa?h('input',{type:'number',value:tCpa,autoFocus:true,onChange:e=>setTCpa(Math.max(1,+e.target.value)),onBlur:()=>setEditCpa(false),style:{width:56,background:'transparent',border:'none',outline:'none',color:C.ink,fontSize:14,fontWeight:500,textAlign:'right',fontFamily:'DM Mono,monospace'}}):h('span',{className:'fd',style:{fontSize:14,fontWeight:500,color:C.ink}},'Rs'+tCpa))),
 
-      {ads.length>0&&<PlatformBars ads={ads}/>}
+    /* INTRO */
+    intro&&h(Intro,{onDismiss:()=>setIntro(false)}),
 
-      {/* FILTER BAR */}
-      <div style={{padding:'12px 40px',borderBottom:`1px solid ${T.bord}`,background:T.surf,
-        display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',position:'sticky',top:53,zIndex:15}}>
-        {['all','Kill','Scale','Upgrade','Optimize','Watch','Pause','Monitor'].map(f=>{
-          const active=fAct===f,cfg=AC[f],count=f!=='all'?ads.filter(a=>a.action===f).length:ads.length;
-          return(
-            <button key={f} onClick={()=>setFAct(f)} className="fp"
-              style={{padding:'5px 12px',borderRadius:100,fontSize:11,fontWeight:active?500:400,cursor:'pointer',fontFamily:'inherit',
-                border:`1px solid ${active?(cfg?`${cfg.c}55`:T.bord2):T.bord}`,
-                background:active?(cfg?cfg.bg:'rgba(42,30,12,.06)'):'transparent',
-                color:active?(cfg?cfg.c:T.txt):T.txt2}}>
-              {f==='all'?'All':f}<span style={{marginLeft:4,opacity:.4,fontSize:10}}>{count}</span>
-            </button>
-          );
-        })}
-        {platforms.length>0&&<div style={{width:1,height:14,background:T.bord,margin:'0 2px'}}/>}
-        {platforms.map(p=>{const active=fPlat===p,c=platC(p);return(
-          <button key={p} onClick={()=>setFPlat(active?'all':p)} className="fp"
-            style={{padding:'5px 12px',borderRadius:100,fontSize:11,fontWeight:active?500:400,cursor:'pointer',fontFamily:'inherit',
-              border:`1px solid ${active?`${c}55`:T.bord}`,background:active?`${c}12`:'transparent',color:active?c:T.txt3}}>
-            <span style={{display:'inline-block',width:5,height:5,borderRadius:'50%',background:c,marginRight:5,verticalAlign:'middle'}}/>
-            {p}
-          </button>
-        );})}
-        <span style={{marginLeft:'auto',fontSize:11,color:T.txt3}}>{displayed.length} shown{search&&` for "${search}"`}</span>
-      </div>
+    /* HERO */
+    h('div',{style:{padding:(intro?24:36)+'px 40px 32px',borderBottom:'1px solid '+C.bord}},
+      p1.isLoading?h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr) 220px',gap:12}},
+        [1,2,3,4].map(i=>h(Sk,{key:i,w:'100%',h:90}))):
+      metrics&&h('div',{style:{display:'flex',gap:20,alignItems:'flex-start',flexWrap:'wrap'}},
+        h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(130px,1fr))',gap:10,flex:'1 1 400px'}},
+          h(MCard,{label:'Capital at risk',value:fmt(metrics.wasted),sub:metrics.kills+' ads to kill · '+(metrics.wasteRatio*100).toFixed(1)+'% of spend',color:C.kill,delay:0,accent:C.kill,mono:true}),
+          h(MCard,{label:'Total revenue',value:fmt(metrics.totalRev),sub:metrics.total+' ads total',delay:50,mono:true}),
+          h(MCard,{label:'Overall ROAS',value:metrics.roas.toFixed(2)+'x',sub:'revenue / spend',color:metrics.roas>=2?C.scale:metrics.roas<1?C.kill:C.ink,delay:100,accent:metrics.roas>=2?C.scale:null,mono:true}),
+          h(MCard,{label:'Scale ready',value:metrics.scales,sub:'increase budget',color:C.scale,delay:150,accent:C.scale}),
+          h(MCard,{label:'Upgrade',value:metrics.upgrades,sub:'latent potential',color:C.upgrade,delay:200,accent:C.upgrade}),
+          h(MCard,{label:'Optimize',value:metrics.optims,sub:'fix and re-test',color:C.optim,delay:250})),
+        h('div',{className:'au hl',style:{animationDelay:'200ms',background:C.surf,border:'1px solid '+C.bord,borderRadius:16,padding:'20px 22px',display:'flex',gap:20,alignItems:'center',flexShrink:0,boxShadow:'0 1px 6px rgba(40,25,8,.04)',cursor:'default'}},
+          h('div',{style:{position:'relative',flexShrink:0}},
+            h(Donut,{data:donutData,size:120}),
+            h('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
+              h('span',{className:'fh',style:{fontSize:24,fontWeight:700,color:C.ink,lineHeight:1}},metrics.total),
+              h('span',{className:'fu',style:{fontSize:9,color:C.ink3,textTransform:'uppercase',letterSpacing:'.1em',marginTop:2}},'ads'))),
+          h('div',{style:{display:'flex',flexDirection:'column',gap:4,minWidth:116}},
+            donutData.map(d=>h('div',{key:d.label,className:'hb',onClick:()=>setFAct(fAct===d.label?'all':d.label),style:{display:'flex',alignItems:'center',gap:7,padding:'4px 8px',borderRadius:7,background:fAct===d.label?(ACT[d.label]?ACT[d.label].bg:'transparent'):'transparent'}},
+              h('span',{style:{width:7,height:7,borderRadius:2,background:d.color,flexShrink:0,display:'block'}}),
+              h('span',{className:'fu',style:{fontSize:12,color:fAct===d.label?d.color:C.ink2,fontWeight:fAct===d.label?700:400}},d.label),
+              h('span',{className:'fd',style:{marginLeft:'auto',fontSize:11,color:C.ink3}},d.v))))))),
 
-      {/* TABLE */}
-      <div style={{overflowX:'auto',background:T.surf}}>
-        <table style={{width:'100%',borderCollapse:'collapse',minWidth:880}}>
-          <thead>
-            <tr style={{background:T.bg,borderBottom:`1px solid ${T.bord}`}}>
-              {[{l:'Action',key:null,w:90},{l:'Brand',key:null,w:null},{l:'Spend',key:'spend',w:110},{l:'Revenue',key:'revenue',w:115},
-                {l:'ROAS',key:'roas',w:95},{l:'CPA',key:'cpa',w:100},{l:'CTR',key:'ctr',w:72},{l:'Conv.',key:'conv',w:72},
-                {l:'Days',key:'days',w:60},{l:'Signals',key:null,w:180}].map(({l,key,w})=>(
-                <th key={l} onClick={()=>key&&handleSort(key)}
-                  style={{padding:'8px 16px',textAlign:'left',fontSize:9,fontWeight:500,textTransform:'uppercase',
-                    letterSpacing:'.12em',color:T.txt3,cursor:key?'pointer':'default',userSelect:'none',whiteSpace:'nowrap',width:w||undefined}}>
-                  {l}<SC k={key}/>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {p1.isLoading?(
-              Array.from({length:12}).map((_,i)=>(
-                <tr key={i} style={{borderBottom:`1px solid ${T.bord}`}}>
-                  {Array.from({length:10}).map((_,j)=>(<td key={j} style={{padding:'13px 16px'}}><Sk w={j===1?110:52} h={11}/></td>))}
-                </tr>
-              ))
-            ):displayed.map((ad,i)=>{
-              const cfg=AC[ad.action]||AC.Monitor;
-              const top=ad.signals[0];
-              const nK=ad.signals.filter(s=>s.cat==='kill').length;
-              const nS=ad.signals.filter(s=>s.cat==='scale').length;
-              const nU=ad.signals.filter(s=>s.cat==='upgrade').length;
-              const shown=nK+nS+nU+(top&&!['kill','scale','upgrade'].includes(top.cat)?1:0);
-              return(
-                <tr key={ad.ad_id||i} onClick={()=>{setSel(ad);setDosTab('overview');}}
-                  className={`row ${cfg.rc} au`} style={{borderBottom:`1px solid ${T.bord}`,animationDelay:`${Math.min(i*12,240)}ms`}}>
-                  <td style={{padding:'12px 16px'}}>
-                    <span style={{display:'inline-block',padding:'3px 10px',borderRadius:100,fontSize:10,fontWeight:500,
-                      background:cfg.bg,color:cfg.c,border:`1px solid ${cfg.c}22`}}>
-                      {ad.action}
-                    </span>
-                  </td>
-                  <td style={{padding:'12px 16px'}}>
-                    <div className="fd" style={{fontSize:15,fontWeight:400,fontStyle:'italic',color:T.txt,lineHeight:1.2}}>
-                      {ad.brand||ad.ad_id}
-                    </div>
-                    <div style={{fontSize:10,color:T.txt3,marginTop:2,display:'flex',alignItems:'center',gap:5}}>
-                      <span style={{display:'inline-block',width:4,height:4,borderRadius:'50%',background:platC(ad.platform)}}/>
-                      {ad.platform} · {ad.category} · {ad.ad_type}
-                    </div>
-                  </td>
-                  <td style={{padding:'12px 16px',fontSize:12,color:T.txt2,fontVariantNumeric:'tabular-nums'}}>
-                    <div>{fmt(ad.spend)}</div>
-                    <div style={{marginTop:3,height:2,background:T.bord,borderRadius:1,width:56,overflow:'hidden'}}>
-                      <div style={{height:'100%',width:`${Math.min((ad.spend/(metrics?.totalSpend||1))*100*20,100)}%`,background:platC(ad.platform),borderRadius:1}}/>
-                    </div>
-                  </td>
-                  <td style={{padding:'12px 16px',fontSize:12,color:T.txt2,fontVariantNumeric:'tabular-nums',opacity:.9}}>{fmt(ad.revenue)}</td>
-                  <td style={{padding:'12px 16px'}}>
-                    <span className="fd" style={{fontSize:17,fontWeight:400,lineHeight:1,fontVariantNumeric:'tabular-nums',
-                      color:ad.roas>=2?T.scale:ad.roas>0&&ad.roas<1?T.kill:T.txt}}>
-                      {ad.roas.toFixed(2)}x
-                    </span>
-                    <RoasBar roas={ad.roas}/>
-                  </td>
-                  <td style={{padding:'12px 16px',fontSize:12,fontVariantNumeric:'tabular-nums',
-                    color:ad.cpa<=tCpa?T.scale:ad.cpa>tCpa*1.8?T.kill:T.optim}}>{fmt(ad.cpa)}</td>
-                  <td style={{padding:'12px 16px',fontSize:11,color:T.txt3,fontVariantNumeric:'tabular-nums'}}>{fmtPct(ad.ctr)}</td>
-                  <td style={{padding:'12px 16px',fontSize:11,color:T.txt3,fontVariantNumeric:'tabular-nums'}}>{ad.conv.toLocaleString()}</td>
-                  <td style={{padding:'12px 16px',fontSize:11,color:T.txt3}}>{ad.days}d</td>
-                  <td style={{padding:'12px 16px'}}>
-                    <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                      {nK>0&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:100,background:'rgba(185,28,28,.1)',color:T.kill,fontWeight:600}}>{nK} kill</span>}
-                      {nS>0&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:100,background:'rgba(22,101,52,.1)',color:T.scale,fontWeight:600}}>{nS} scale</span>}
-                      {nU>0&&<span style={{fontSize:9,padding:'2px 7px',borderRadius:100,background:'rgba(146,64,14,.1)',color:T.upgrade,fontWeight:600}}>{nU} upgrade</span>}
-                      {top&&!['kill','scale','upgrade'].includes(top.cat)&&(
-                        <span style={{fontSize:9,padding:'2px 7px',borderRadius:100,background:`${CAT_C[top.cat]||T.txt3}15`,color:CAT_C[top.cat]||T.txt3}}>{top.label}</span>
-                      )}
-                      {ad.signals.length>shown&&<span style={{fontSize:9,color:T.txt3}}> +{ad.signals.length-shown}</span>}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {!p1.isLoading&&displayed.length===0&&(
-          <div style={{padding:'72px 40px',textAlign:'center',color:T.txt3,fontSize:14}}>
-            {search?`No ads found for "${search}"`:'No ads match the current filter.'}
-          </div>
-        )}
-      </div>
+    ads.length>0&&h(PlatBars,{ads}),
 
-      {/* DOSSIER */}
-      {sel&&(()=>{
-        const cfg=AC[sel.action]||AC.Monitor;
-        return(
-          <div style={{position:'fixed',inset:0,zIndex:50,display:'flex',justifyContent:'flex-end'}}>
-            <div onClick={()=>setSel(null)} style={{position:'absolute',inset:0,background:'rgba(15,10,4,.35)',backdropFilter:'blur(8px)'}}/>
-            <div className="ain fb" style={{position:'relative',width:'100%',maxWidth:480,background:T.surf,borderLeft:`1px solid ${T.bord}`,
-              height:'100%',overflowY:'auto',display:'flex',flexDirection:'column',boxShadow:'-20px 0 60px rgba(42,30,12,.12)'}}>
-              <div style={{padding:'22px 26px 0',borderBottom:`1px solid ${T.bord}`,position:'sticky',top:0,background:T.surf,zIndex:10}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}}>
-                  <div>
-                    <span style={{fontSize:9,textTransform:'uppercase',letterSpacing:'.14em',color:T.txt3,display:'block',marginBottom:7}}>Intelligence Brief</span>
-                    <h2 className="fd" style={{fontSize:26,fontWeight:400,fontStyle:'italic',color:T.txt,lineHeight:1.2}}>{sel.brand||sel.ad_id}</h2>
-                    <p style={{fontSize:11,color:T.txt3,marginTop:4,display:'flex',alignItems:'center',gap:5}}>
-                      <span style={{display:'inline-block',width:5,height:5,borderRadius:'50%',background:platC(sel.platform)}}/>
-                      {sel.platform} · {sel.ad_type} · {sel.category}
-                    </p>
-                  </div>
-                  <button onClick={()=>setSel(null)} style={{background:T.bg,border:`1px solid ${T.bord}`,borderRadius:'50%',width:30,height:30,
-                    display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:T.txt2,flexShrink:0,marginTop:2}}>
-                    <X size={14}/>
-                  </button>
-                </div>
-                <div style={{padding:'9px 13px',borderRadius:8,background:cfg.bg,borderLeft:`3px solid ${cfg.c}`,marginBottom:14}}>
-                  <span style={{fontSize:10,fontWeight:600,color:cfg.c,textTransform:'uppercase',letterSpacing:'.07em'}}>{sel.action}</span>
-                  <p style={{fontSize:12,color:T.txt2,marginTop:2,lineHeight:1.55}}>{sel.signals[0]?.desc||'Performance within normal range.'}</p>
-                </div>
-                <div style={{display:'flex',gap:0,borderTop:`1px solid ${T.bord}`}}>
-                  <Tab active={dosTab==='overview'} onClick={()=>setDosTab('overview')}>Overview</Tab>
-                  <Tab active={dosTab==='signals'} onClick={()=>setDosTab('signals')}>Signals ({sel.signals.length})</Tab>
-                  <Tab active={dosTab==='details'} onClick={()=>setDosTab('details')}>Details</Tab>
-                </div>
-              </div>
+    /* FILTERS */
+    h('div',{style:{padding:'12px 40px',borderBottom:'1px solid '+C.bord,background:C.surf,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',position:'sticky',top:54,zIndex:15}},
+      ['all','Kill','Scale','Upgrade','Optimize','Watch','Pause','Monitor'].map(f=>{
+        const active=fAct===f,cfg=ACT[f],count=f!=='all'?ads.filter(a=>a.action===f).length:ads.length;
+        return h('button',{key:f,onClick:()=>setFAct(f),className:'pill fu',style:{padding:'5px 13px',borderRadius:100,fontSize:11,fontWeight:active?700:500,cursor:'pointer',border:'1.5px solid '+(active?(cfg?cfg.c+'66':C.bord2):C.bord),background:active?(cfg?cfg.bg:'rgba(40,25,8,.06)'):'transparent',color:active?(cfg?cfg.c:C.ink):C.ink2}},
+          f==='all'?'All':f,h('span',{style:{marginLeft:5,opacity:.45,fontSize:10,fontWeight:400}},count));
+      }),
+      platforms.length>0&&h('div',{style:{width:1,height:14,background:C.bord,margin:'0 3px'}}),
+      platforms.map(p=>{
+        const active=fPlat===p,col=platC(p);
+        return h('button',{key:p,onClick:()=>setFPlat(active?'all':p),className:'pill fu',style:{padding:'5px 13px',borderRadius:100,fontSize:11,fontWeight:active?700:500,cursor:'pointer',border:'1.5px solid '+(active?col+'66':C.bord),background:active?col+'12':'transparent',color:active?col:C.ink3}},
+          h('span',{style:{display:'inline-block',width:5,height:5,borderRadius:'50%',background:col,marginRight:6,verticalAlign:'middle'}}),p);
+      }),
+      h('span',{className:'fu',style:{marginLeft:'auto',fontSize:11,color:C.ink3}},displayed.length+' shown'+(search?' for "'+search+'"':''))),
 
-              <div style={{padding:'20px 26px',flex:1}}>
-                {dosTab==='overview'&&(
-                  <>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginBottom:20}}>
-                      {[
-                        {l:'Spend',v:fmt(sel.spend)},
-                        {l:'Revenue',v:fmt(sel.revenue)},
-                        {l:'ROAS',v:`${sel.roas.toFixed(2)}x`,c:sel.roas>=2?T.scale:sel.roas>0&&sel.roas<1?T.kill:T.txt},
-                        {l:'CPA',v:fmt(sel.cpa),c:sel.cpa<=tCpa?T.scale:sel.cpa>tCpa*1.8?T.kill:T.optim},
-                        {l:'CTR',v:fmtPct(sel.ctr)},
-                        {l:'Conv.',v:sel.conv.toLocaleString()},
-                        {l:'Creative',v:`${sel.cs.toFixed(1)}/10`,c:sel.cs>=7?T.scale:sel.cs<4?T.kill:T.txt},
-                        {l:'LP score',v:`${sel.lps.toFixed(1)}/10`,c:sel.lps>=7?T.scale:sel.lps<4?T.kill:T.txt},
-                        {l:'Freq.',v:`${sel.freq.toFixed(1)}x`,c:sel.freq>7?T.kill:T.txt},
-                      ].map(({l,v,c=T.txt2})=>(
-                        <div key={l} className="apop" style={{padding:'9px 11px',border:`1px solid ${T.bord}`,borderRadius:8,background:T.bg}}>
-                          <p style={{fontSize:9,textTransform:'uppercase',letterSpacing:'.1em',color:T.txt3,fontWeight:500,marginBottom:4}}>{l}</p>
-                          <p className="fd" style={{fontSize:19,fontWeight:300,lineHeight:1,color:c,fontVariantNumeric:'tabular-nums'}}>{v}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{background:T.bg,border:`1px solid ${T.bord}`,borderRadius:10,padding:'14px 16px',display:'flex',gap:14,alignItems:'flex-start'}}>
-                      <div>
-                        <p style={{fontSize:9,textTransform:'uppercase',letterSpacing:'.1em',color:T.txt3,fontWeight:500,marginBottom:8}}>Asset quality map</p>
-                        <ScoreQuad cs={sel.cs} lps={sel.lps} action={sel.action}/>
-                      </div>
-                      <div style={{flex:1}}>
-                        <p style={{fontSize:9,textTransform:'uppercase',letterSpacing:'.1em',color:T.txt3,fontWeight:500,marginBottom:10}}>Score bars</p>
-                        {[
-                          {l:'Creative',v:sel.cs,c:sel.cs>=7?T.scale:sel.cs<4?T.kill:T.optim},
-                          {l:'Landing page',v:sel.lps,c:sel.lps>=7?T.scale:sel.lps<4?T.kill:T.optim},
-                          ...(sel.vcr!=null?[{l:'Video compl.',v:sel.vcr/10,c:sel.vcr>60?T.scale:sel.vcr<25?T.kill:T.optim,pct:sel.vcr,label:`${sel.vcr}%`}]:[]),
-                        ].map(({l,v,c,pct,label})=>(
-                          <div key={l} style={{marginBottom:10}}>
-                            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                              <span style={{fontSize:11,color:T.txt2}}>{l}</span>
-                              <span style={{fontSize:11,fontWeight:500,color:c}}>{label||`${v.toFixed(1)}/10`}</span>
-                            </div>
-                            <div style={{height:5,background:T.bord,borderRadius:3,overflow:'hidden'}}>
-                              <div style={{height:'100%',width:`${(pct!==undefined?pct:v*10)}%`,background:c,borderRadius:3,transition:'width .7s ease'}}/>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
+    /* TABLE */
+    h('div',{style:{overflowX:'auto',background:C.surf}},
+      h('table',{style:{width:'100%',borderCollapse:'collapse',minWidth:900}},
+        h('thead',null,h('tr',{style:{background:'#EDE6DA',borderBottom:'1.5px solid '+C.bord2}},
+          h(TH,{l:'Action',k:null}),h(TH,{l:'Brand / Ad',k:null}),
+          h(TH,{l:'Spend',k:'spend'}),h(TH,{l:'Revenue',k:'revenue'}),
+          h(TH,{l:'ROAS',k:'roas'}),h(TH,{l:'CPA',k:'cpa'}),
+          h(TH,{l:'CTR',k:'ctr'}),h(TH,{l:'Conv.',k:'conv'}),
+          h(TH,{l:'Days',k:'days'}),h(TH,{l:'Signals',k:null}))),
+        h('tbody',null,
+          p1.isLoading?Array.from({length:12}).map((_,i)=>h('tr',{key:i,style:{borderBottom:'1px solid '+C.bord}},
+            Array.from({length:10}).map((_,j)=>h('td',{key:j,style:{padding:'14px 16px'}},h(Sk,{w:j===1?120:55,h:12}))))):
+          displayed.map((ad,i)=>{
+            const cfg=ACT[ad.action]||ACT.Monitor;
+            const top=ad.signals[0];
+            const nK=ad.signals.filter(s=>s.cat==='kill').length;
+            const nS=ad.signals.filter(s=>s.cat==='scale').length;
+            const nU=ad.signals.filter(s=>s.cat==='upgrade').length;
+            const shown=nK+nS+nU+(top&&!['kill','scale','upgrade'].includes(top.cat)?1:0);
+            return h('tr',{key:ad.ad_id||i,onClick:()=>{setSel(ad);setDosTab('overview');},className:'row '+cfg.rc+' au',style:{borderBottom:'1px solid '+C.bord,animationDelay:Math.min(i*12,220)+'ms'}},
+              h('td',{style:{padding:'13px 16px'}},
+                h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,padding:'4px 12px',borderRadius:100,fontSize:10,fontWeight:700,background:cfg.bg,color:cfg.c,border:'1.5px solid '+cfg.c+'33'}},ad.action)),
+              h('td',{style:{padding:'13px 16px'}},
+                h('div',{className:'fb',style:{fontSize:15,fontWeight:600,fontStyle:'italic',color:C.ink,lineHeight:1.2}},ad.brand||ad.ad_id),
+                h('div',{className:'fu',style:{fontSize:10,color:C.ink3,marginTop:3,display:'flex',alignItems:'center',gap:5,fontWeight:400}},
+                  h('span',{style:{display:'inline-block',width:4,height:4,borderRadius:'50%',background:platC(ad.platform)}}),
+                  ad.platform+' · '+ad.category+' · '+ad.ad_type)),
+              h('td',{style:{padding:'13px 16px'}},
+                h('span',{className:'fd',style:{fontSize:12,color:C.ink2,fontVariantNumeric:'tabular-nums'}},fmt(ad.spend)),
+                h('div',{style:{marginTop:4,height:2,background:C.bord,borderRadius:1,width:56,overflow:'hidden'}},
+                  h('div',{style:{height:'100%',width:Math.min((ad.spend/(metrics?metrics.totalSpend:1||1))*100*20,100)+'%',background:platC(ad.platform),borderRadius:1}}))),
+              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:12,color:C.ink2,opacity:.85,fontVariantNumeric:'tabular-nums'}},fmt(ad.revenue))),
+              h('td',{style:{padding:'13px 16px'}},
+                h('span',{className:'fh',style:{fontSize:18,fontWeight:700,lineHeight:1,fontVariantNumeric:'tabular-nums',color:ad.roas>=2?C.scale:ad.roas>0&&ad.roas<1?C.kill:C.ink}},ad.roas.toFixed(2)+'x'),
+                h(RoasMini,{roas:ad.roas})),
+              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:12,fontVariantNumeric:'tabular-nums',fontWeight:500,color:ad.cpa<=tCpa?C.scale:ad.cpa>tCpa*1.8?C.kill:C.optim}},fmt(ad.cpa))),
+              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:11,color:C.ink3,fontVariantNumeric:'tabular-nums'}},fmtPct(ad.ctr))),
+              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:11,color:C.ink3,fontVariantNumeric:'tabular-nums'}},ad.conv.toLocaleString())),
+              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fu',style:{fontSize:11,color:C.ink3}},ad.days+'d')),
+              h('td',{style:{padding:'13px 16px'}},
+                h('div',{style:{display:'flex',gap:4,flexWrap:'wrap'}},
+                  nK>0&&h('span',{className:'fu',style:{fontSize:9,padding:'2px 8px',borderRadius:100,background:'rgba(192,57,43,.1)',color:C.kill,fontWeight:700}},nK+' kill'),
+                  nS>0&&h('span',{className:'fu',style:{fontSize:9,padding:'2px 8px',borderRadius:100,background:'rgba(26,107,60,.1)',color:C.scale,fontWeight:700}},nS+' scale'),
+                  nU>0&&h('span',{className:'fu',style:{fontSize:9,padding:'2px 8px',borderRadius:100,background:'rgba(160,82,45,.1)',color:C.upgrade,fontWeight:700}},nU+' upgrade'),
+                  top&&!['kill','scale','upgrade'].includes(top.cat)&&h('span',{className:'fu',style:{fontSize:9,padding:'2px 8px',borderRadius:100,background:(CAT_C[top.cat]||C.ink3)+'14',color:CAT_C[top.cat]||C.ink3,fontWeight:500}},top.label),
+                  ad.signals.length>shown&&h('span',{className:'fu',style:{fontSize:9,color:C.ink3}},' +'+(ad.signals.length-shown)))));
+          }),
+          !p1.isLoading&&displayed.length===0&&h('tr',null,h('td',{colSpan:10,style:{padding:'72px 40px',textAlign:'center',color:C.ink3,fontSize:14}},search?'No ads found for "'+search+'"':'No ads match the current filter.'))))),
 
-                {dosTab==='signals'&&(
-                  <div style={{display:'flex',flexDirection:'column',gap:7}}>
-                    {sel.signals.length===0?(
-                      <p className="fd" style={{fontSize:15,color:T.txt3,fontStyle:'italic',padding:'20px 0'}}>No active signals detected.</p>
-                    ):sel.signals.map(sig=>{
-                      const c=CAT_C[sig.cat]||T.txt3;
-                      return(
-                        <div key={sig.id} style={{padding:'11px 14px',borderRadius:9,background:`${c}0E`,borderLeft:`3px solid ${c}`}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:3}}>
-                            <span style={{fontSize:11,fontWeight:600,color:c,letterSpacing:'.03em'}}>{sig.label}</span>
-                            <span style={{fontSize:9,color:T.txt3,textTransform:'uppercase',letterSpacing:'.07em',
-                              background:`${c}15`,padding:'2px 7px',borderRadius:100}}>{sig.cat}</span>
-                          </div>
-                          <p style={{fontSize:12,color:T.txt2,lineHeight:1.55}}>{sig.desc}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {dosTab==='details'&&(
-                  <div>
-                    {[['Ad ID',sel.ad_id],['Brand',sel.brand],['Platform',sel.platform],['Ad type',sel.ad_type],
-                      ['Category',sel.category],['Audience',sel.target_audience],['Creative theme',sel.creative_theme],
-                      ['Status',sel.status],['Start date',sel.start_date],['Days running',`${sel.days}d`],
-                      ['Spend',fmt(sel.spend)],['Revenue',fmt(sel.revenue)],['ROAS',`${sel.roas.toFixed(2)}x`],
-                      ['CPA',fmt(sel.cpa)],['CTR',fmtPct(sel.ctr)],['CPC',fmt(sel.cpc)],
-                      ['Conversions',sel.conv.toLocaleString()],['Impressions',(+sel.impressions||0).toLocaleString()],
-                      ['Clicks',(+sel.clicks||0).toLocaleString()],['Frequency',`${sel.freq.toFixed(2)}x`],
-                      ['Creative score',`${sel.cs.toFixed(1)}/10`],['LP score',`${sel.lps.toFixed(1)}/10`],
-                      ['Video compl.',sel.vcr!=null?`${sel.vcr}%`:'N/A'],
-                    ].map(([label,value])=>(
-                      <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'7px 0',borderBottom:`1px solid ${T.bord}`}}>
-                        <span style={{fontSize:11,color:T.txt3}}>{label}</span>
-                        <span style={{fontSize:12,color:T.txt2}}>{value||'--'}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-    </div>
+    /* DOSSIER */
+    sel&&(()=>{
+      const cfg=ACT[sel.action]||ACT.Monitor;
+      const Icon=cfg.icon;
+      const ti=(id,label)=>h('button',{key:id,onClick:()=>setDosTab(id),className:'tab fu',style:{padding:'9px 16px',fontSize:12,fontWeight:dosTab===id?700:400,color:dosTab===id?C.ink:C.ink3,borderBottom:'2px solid '+(dosTab===id?C.ink:'transparent')}},label);
+      return h('div',{style:{position:'fixed',inset:0,zIndex:50,display:'flex',justifyContent:'flex-end'}},
+        h('div',{onClick:()=>setSel(null),style:{position:'absolute',inset:0,background:'rgba(20,12,4,.32)',backdropFilter:'blur(8px)'}}),
+        h('div',{className:'ain fu',style:{position:'relative',width:'100%',maxWidth:490,background:C.surf,borderLeft:'1px solid '+C.bord,height:'100%',overflowY:'auto',display:'flex',flexDirection:'column',boxShadow:'-24px 0 72px rgba(40,25,8,.14)'}},
+          h('div',{style:{padding:'24px 28px 0',borderBottom:'1px solid '+C.bord,position:'sticky',top:0,background:C.surf,zIndex:10}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}},
+              h('div',null,
+                h('span',{className:'fu',style:{fontSize:9,textTransform:'uppercase',letterSpacing:'.16em',color:C.ink3,display:'block',marginBottom:8,fontWeight:700}},'Intelligence Brief'),
+                h('h2',{className:'fb',style:{fontSize:26,fontWeight:600,fontStyle:'italic',color:C.ink,lineHeight:1.2}},sel.brand||sel.ad_id),
+                h('p',{className:'fu',style:{fontSize:11,color:C.ink3,marginTop:5,display:'flex',alignItems:'center',gap:6,fontWeight:400}},
+                  h('span',{style:{display:'inline-block',width:5,height:5,borderRadius:'50%',background:platC(sel.platform)}}),
+                  sel.platform+' · '+sel.ad_type+' · '+sel.category)),
+              h('button',{onClick:()=>setSel(null),className:'hb',style:{background:'rgba(40,25,8,.06)',border:'1.5px solid '+C.bord,borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,marginTop:2}},h(X,{size:14,color:C.ink2}))),
+            h('div',{style:{padding:'10px 14px',borderRadius:10,background:cfg.bg,borderLeft:'3px solid '+cfg.c,marginBottom:14,display:'flex',gap:10,alignItems:'flex-start'}},
+              h(Icon,{size:16,style:{color:cfg.c,flexShrink:0,marginTop:1}}),
+              h('div',null,
+                h('span',{className:'fu',style:{fontSize:10,fontWeight:700,color:cfg.c,textTransform:'uppercase',letterSpacing:'.08em'}},sel.action),
+                h('p',{className:'fu',style:{fontSize:12,color:C.ink2,marginTop:2,lineHeight:1.6}},sel.signals[0]?sel.signals[0].desc:'Performance within normal range.'))),
+            h('div',{style:{display:'flex',gap:0,borderTop:'1px solid '+C.bord}},
+              ti('overview','Overview'),ti('signals','Signals ('+sel.signals.length+')'),ti('details','Details'))),
+          h('div',{style:{padding:'22px 28px',flex:1}},
+            dosTab==='overview'&&h('div',null,
+              h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginBottom:20}},
+                [{l:'Spend',v:fmt(sel.spend),mono:true},{l:'Revenue',v:fmt(sel.revenue),mono:true},
+                 {l:'ROAS',v:sel.roas.toFixed(2)+'x',mono:true,c:sel.roas>=2?C.scale:sel.roas>0&&sel.roas<1?C.kill:C.ink},
+                 {l:'CPA',v:fmt(sel.cpa),mono:true,c:sel.cpa<=tCpa?C.scale:sel.cpa>tCpa*1.8?C.kill:C.optim},
+                 {l:'CTR',v:fmtPct(sel.ctr),mono:true},{l:'Conv.',v:sel.conv.toLocaleString(),mono:true},
+                 {l:'Creative',v:sel.cs.toFixed(1)+'/10',mono:true,c:sel.cs>=7?C.scale:sel.cs<4?C.kill:C.ink},
+                 {l:'LP score',v:sel.lps.toFixed(1)+'/10',mono:true,c:sel.lps>=7?C.scale:sel.lps<4?C.kill:C.ink},
+                 {l:'Freq.',v:sel.freq.toFixed(1)+'x',mono:true,c:sel.freq>7?C.kill:C.ink}].map(function(x){
+                  return h('div',{key:x.l,className:'apop',style:{padding:'10px 12px',border:'1px solid '+C.bord,borderRadius:9,background:'#EDE6DA'}},
+                    h('p',{className:'fu',style:{fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:C.ink3,fontWeight:700,marginBottom:5}},x.l),
+                    h('p',{className:x.mono?'fd':'fh',style:{fontSize:19,fontWeight:x.mono?500:700,lineHeight:1,color:x.c||C.ink2,fontVariantNumeric:'tabular-nums'}},x.v));
+                })),
+              h('div',{style:{background:'#EDE6DA',border:'1px solid '+C.bord,borderRadius:12,padding:'16px 18px',display:'flex',gap:16,alignItems:'flex-start'}},
+                h('div',null,
+                  h('p',{className:'fu',style:{fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:C.ink3,fontWeight:700,marginBottom:10}},'Asset quality map'),
+                  h(ScoreMap,{cs:sel.cs,lps:sel.lps,action:sel.action})),
+                h('div',{style:{flex:1}},
+                  h('p',{className:'fu',style:{fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:C.ink3,fontWeight:700,marginBottom:12}},'Score breakdown'),
+                  [{l:'Creative',v:sel.cs,pct:sel.cs*10,c:sel.cs>=7?C.scale:sel.cs<4?C.kill:C.optim},
+                   {l:'Landing page',v:sel.lps,pct:sel.lps*10,c:sel.lps>=7?C.scale:sel.lps<4?C.kill:C.optim},
+                   ...(sel.vcr!=null?[{l:'Video completion',v:sel.vcr,pct:sel.vcr,label:sel.vcr+'%',c:sel.vcr>60?C.scale:sel.vcr<25?C.kill:C.optim}]:[])].map(function(x){
+                    return h('div',{key:x.l,style:{marginBottom:11}},
+                      h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:5}},
+                        h('span',{className:'fu',style:{fontSize:11,color:C.ink2,fontWeight:600}},x.l),
+                        h('span',{className:'fd',style:{fontSize:12,fontWeight:500,color:x.c}},x.label||x.v.toFixed(1)+'/10')),
+                      h('div',{style:{height:5,background:C.bord,borderRadius:3,overflow:'hidden'}},
+                        h('div',{style:{height:'100%',width:x.pct+'%',background:x.c,borderRadius:3,transition:'width .8s ease'}})));
+                  })))),
+            dosTab==='signals'&&h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+              sel.signals.length===0?h('p',{className:'fb',style:{fontSize:15,color:C.ink3,fontStyle:'italic',padding:'20px 0'}},'No active signals detected.'):
+              sel.signals.map(sig=>{
+                const col=CAT_C[sig.cat]||C.ink3;
+                return h('div',{key:sig.id,style:{padding:'12px 15px',borderRadius:10,background:col+'0E',borderLeft:'3px solid '+col}},
+                  h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
+                    h('span',{className:'fu',style:{fontSize:11,fontWeight:700,color:col,letterSpacing:'.03em'}},sig.label),
+                    h('span',{className:'fu',style:{fontSize:9,color:C.ink3,textTransform:'uppercase',letterSpacing:'.09em',background:col+'18',padding:'2px 8px',borderRadius:100,fontWeight:700}},sig.cat)),
+                  h('p',{className:'fu',style:{fontSize:12,color:C.ink2,lineHeight:1.6,fontWeight:400}},sig.desc));
+              })),
+            dosTab==='details'&&h('div',null,
+              [['Ad ID',sel.ad_id],['Brand',sel.brand],['Platform',sel.platform],['Ad type',sel.ad_type],['Category',sel.category],['Audience',sel.target_audience],['Creative theme',sel.creative_theme],['Status',sel.status],['Start date',sel.start_date],['Days running',sel.days+'d'],['Spend',fmt(sel.spend)],['Revenue',fmt(sel.revenue)],['ROAS',sel.roas.toFixed(2)+'x'],['CPA',fmt(sel.cpa)],['Target CPA',fmt(tCpa)],['CTR',fmtPct(sel.ctr)],['CPC',fmt(sel.cpc)],['Conversions',sel.conv.toLocaleString()],['Impressions',(+sel.impressions||0).toLocaleString()],['Clicks',(+sel.clicks||0).toLocaleString()],['Frequency',sel.freq.toFixed(2)+'x'],['Creative score',sel.cs.toFixed(1)+'/10'],['LP score',sel.lps.toFixed(1)+'/10'],['Video compl.',sel.vcr!=null?sel.vcr+'%':'N/A']].map(function([label,value]){
+                return h('div',{key:label,style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'8px 0',borderBottom:'1px solid '+C.bord}},
+                  h('span',{className:'fu',style:{fontSize:11,color:C.ink3,fontWeight:600}},label),
+                  h('span',{className:'fd',style:{fontSize:12,color:C.ink2}},value||'--'));
+              })))));
+    })()
   );
 };
 
-export default function App() {
-  return <QueryClientProvider client={queryClient}><Dashboard/></QueryClientProvider>;
-}
+export default function App(){
+  return React.createElement(QueryClientProvider,{client:queryClient},React.createElement(Dashboard,null));
+}git
