@@ -1,333 +1,734 @@
 import React, { useState, useMemo } from 'react';
 import { QueryClient, QueryClientProvider, useQuery, useQueries } from '@tanstack/react-query';
-import { X, Target, ChevronUp, ChevronDown, Info, Zap, Sparkles, Activity, MousePointer2, TrendingUp, BarChart3, Globe, ShieldCheck, AlertCircle, Filter } from 'lucide-react';
+import { X, Target, ChevronUp, ChevronDown } from 'lucide-react';
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 300_000, retry: 1 } },
-});
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 300_000, retry: 1 } } });
 
 const API = 'https://mosaicfellowship.in/api/data/content/ads';
 const fetchPage = async (p) => {
   const r = await fetch(`${API}?page=${p}&limit=100`);
-  if (!r.ok) throw new Error(`Page ${p}: ${r.status}`);
+  if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 };
 
-// ─── TYPOGRAPHY + ANIMATION (LUXURY EDITORIAL) ────────────────────────────────
+// ─── STYLES ──────────────────────────────────────────────────────────────────
 const Fonts = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Geist:wght@300;400;600&family=Bodoni+Moda:ital,wght@0,900;1,900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Geist:wght@300;400;500&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #F3EEE5; }
+    .fd { font-family: 'Cormorant Garamond', Georgia, serif; }
+    .fb { font-family: 'Geist', system-ui, sans-serif; }
 
-    body { background: #050505; color: #E4E4E7; overflow-x: hidden; }
+    @keyframes fadeUp  { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes slideIn { from { opacity:0; transform:translateX(36px) } to { opacity:1; transform:translateX(0) } }
+    @keyframes shimmer { 0%{ background-position:-400px 0 } 100%{ background-position:400px 0 } }
 
-    .f-display { font-family: 'Bodoni Moda', 'Cormorant Garamond', serif; }
-    .f-body    { font-family: 'Geist', 'DM Sans', system-ui, sans-serif; }
+    .au { animation: fadeUp  .4s cubic-bezier(.22,.68,0,1.2) both }
+    .as { animation: slideIn .32s cubic-bezier(.22,.68,0,1.2) both }
 
-    @keyframes fadeUp   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes slideIn  { from { transform:translateX(100%); } to { transform:translateX(0); } }
-    @keyframes shimmer  { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
-    @keyframes pulseGlow { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    .skel {
+      background: linear-gradient(90deg, rgba(0,0,0,.04) 0%, rgba(0,0,0,.08) 50%, rgba(0,0,0,.04) 100%);
+      background-size: 400px 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+    }
 
-    .anim-up    { animation: fadeUp  .8s cubic-bezier(0.16, 1, 0.3, 1) both; }
-    .anim-slide { animation: slideIn .6s  cubic-bezier(0.16, 1, 0.3, 1) both; }
-    .glow-text  { animation: pulseGlow 2s infinite; }
-
-    .row-base {
-      border-left: 4px solid transparent;
-      transition: all .3s cubic-bezier(0.16, 1, 0.3, 1);
+    .row {
+      border-left: 2px solid transparent;
+      transition: border-color .14s, background .14s;
       cursor: pointer;
-      position: relative;
     }
-    .row-base:hover         { background: rgba(255,255,255,.03); transform: scale(1.002); z-index: 10; }
-    .row-kill:hover         { border-left-color: #FF453A; background: rgba(255,69,58,.04); }
-    .row-scale:hover        { border-left-color: #32D74B; background: rgba(50,215,75,.04); }
-    .row-upgrade:hover      { border-left-color: #5E5CE6; background: rgba(94,92,230,.06); }
-    .row-optimize:hover     { border-left-color: #FF9F0A; background: rgba(255,159,10,.03); }
-    .row-watch:hover        { border-left-color: #BF5AF2; background: rgba(191,90,242,.03); }
-    .row-monitor:hover      { border-left-color: #3A3A3C; }
+    .row:hover               { background: rgba(0,0,0,.025); }
+    .rk:hover { border-left-color:#B91C1C; background:rgba(185,28,28,.035); }
+    .rs:hover { border-left-color:#166534; background:rgba(22,101,52,.03); }
+    .ru:hover { border-left-color:#92400E; background:rgba(146,64,14,.03); }
+    .ro:hover { border-left-color:#B45309; background:rgba(180,83,9,.03); }
+    .rw:hover { border-left-color:#6D28D9; background:rgba(109,40,217,.025); }
+    .rp:hover { border-left-color:#9CA3AF; }
+    .rm:hover { border-left-color:#D1C9BE; }
 
-    .glass-card { 
-      background: rgba(255, 255, 255, 0.02); 
-      backdrop-filter: blur(30px); 
-      border: 1px solid rgba(255, 255, 255, 0.08); 
-      border-radius: 40px;
-    }
+    .fp { transition: all .13s; }
+    .fp:hover { background: rgba(0,0,0,.05) !important; }
 
-    .pill { border-radius: 100px; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1); }
-    .filter-pill:hover { border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.05); }
-
-    ::-webkit-scrollbar       { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 5px; }
+    ::-webkit-scrollbar       { width:5px }
+    ::-webkit-scrollbar-track { background:transparent }
+    ::-webkit-scrollbar-thumb { background:rgba(0,0,0,.12); border-radius:5px }
   `}</style>
 );
 
-// ─── THE SIGNAL ENGINE (INTELLIGENT REVENUE-FIRST LOGIC) ───────────────────────
-const analyzeAd = (raw, targetCpa) => {
-  const spend   = +raw.spend || 0;
-  const conv    = +raw.conversions || 0;
-  const revenue = +raw.revenue || 0;
-  const roas    = +raw.roas || 0;
-  const days    = +raw.days_running || 0;
-  const ctr     = +raw.ctr || 0;
-  const cpc     = +raw.cpc || 0;
-  const cs      = +raw.creative_score || 0;
-  const lps     = +raw.landing_page_score || 0;
-  const cpa     = +raw.cpa || (conv > 0 ? spend / conv : 0);
-  const vcr     = raw.video_completion_rate != null ? +raw.video_completion_rate : null;
-  const S = [];
+// ─── THE MARKETING BRAIN ──────────────────────────────────────────────────────
+//
+// Mental model:
+//   1. Is this ad EARNING its place? → Scale
+//   2. Is it earning but leaving money on table due to weak creative/LP? → Upgrade
+//   3. Is it provably destroying capital with zero hope? → Kill (high bar)
+//   4. Is it broken in a specific, fixable way? → Optimize
+//   5. Is the audience tired of it? → Pause
+//   6. Is it shaky but converting? → Watch
+//   7. Too early or nothing wrong → Monitor
+//
+// KILL is reserved. An ad generating ANY meaningful revenue is not a kill —
+// it's a problem to fix. Kill = money leaving with zero signal of return.
+//
+const analyzeAd = (raw, tCpa) => {
+  const spend  = +raw.spend   || 0;
+  const conv   = +raw.conversions || 0;
+  const rev    = +raw.revenue || 0;
+  const roas   = +raw.roas    || 0;
+  const days   = +raw.days_running || 0;
+  const ctr    = +raw.ctr     || 0;
+  const cpc    = +raw.cpc     || 0;
+  const impr   = +raw.impressions || 0;
+  const freq   = +raw.frequency || 0;
+  const cs     = +raw.creative_score || 0;
+  const lps    = +raw.landing_page_score || 0;
+  const vcr    = raw.video_completion_rate != null ? +raw.video_completion_rate : null;
+  const cpa    = +raw.cpa || (conv > 0 ? spend / conv : 0);
+  const status = (raw.status || '').toLowerCase();
+  const S      = [];
 
-  // UPGRADE GATE: PROTECT REVENUE FROM KILL
-  // If an ad is making money but creative is poor, it is an UPGRADE, not a KILL.
-  if (cs < 5 && revenue > (spend * 1.5) && conv > 0) {
-    S.push({ id:'upgrade', label:'Creative Upgrade', cat:'upgrade', weight:120, desc:`This ad is a commercial success (₹${revenue.toLocaleString()} earned) but the visuals are being rejected by the platform algorithm. Don't stop the campaign—refresh the creative visuals to lower costs and scale profit.` });
-  }
+  // ── KILL: Only when there is truly no hope left ──────────────────────────
+  // Classic drain: significant spend, no proof of life, enough time to know
+  if (spend > 3 * tCpa && conv === 0 && days >= 5)
+    S.push({ id:'drain',       label:'Budget Drain',        cat:'kill', weight:100,
+      desc:`₹${spend.toLocaleString()} spent over ${days} days — ${(spend/tCpa).toFixed(1)}× target CPA — with zero conversions. No signal of intent whatsoever.` });
 
-  // KILL GATE: ONLY FOR TRUE CAPITAL BLEED
-  if (spend > 3 * targetCpa && conv === 0) {
-    S.push({ id:'capital_bleed', label:'Capital Bleed', cat:'kill', weight:100, desc:`₹${spend.toLocaleString()} spent with zero conversion signals. Capital is being consumed without intent. Immediate termination required.` });
-  }
-  if (roas > 0 && roas < 1 && days >= 14 && revenue < spend) {
-    S.push({ id:'sustained_loss', label:'Sustained Loss', cat:'kill', weight:95, desc:`Campaign has failed to reach break-even for 14+ days. Net loss confirmed.` });
-  }
+  // Revenue is negative territory AND has had enough run to prove it will stay that way
+  if (roas > 0 && roas < 0.4 && days >= 21)
+    S.push({ id:'deep_ruin',   label:'Confirmed Loss',      cat:'kill', weight:96,
+      desc:`ROAS ${roas.toFixed(2)}× — returning less than 40 paise per rupee spent. ${days} days of data confirms this is structural, not a warm-up dip.` });
 
-  // SCALE GATE: HIGH YIELD
-  if (roas > 4 && cpa <= targetCpa && conv > 0) {
-    S.push({ id:'alpha_performer', label:'Proven Alpha', cat:'scale', weight:110, desc:`Peak capital efficiency at ${roas.toFixed(1)}× returns. Move to aggressive scaling mode.` });
-  }
-  if (vcr > 70 && roas > 2 && conv > 0) {
-    S.push({ id:'retention_winner', label:'Retention King', cat:'scale', weight:85, desc:`Exceptional video retention (${vcr}%). Audience is highly engaged.` });
-  }
+  // Invisible at scale — shown to millions, not a single conversion
+  if (impr > 3_000_000 && ctr < 0.2 && conv === 0 && days >= 7)
+    S.push({ id:'ghost',       label:'Ghost Ad',             cat:'kill', weight:90,
+      desc:`${(impr/1e6).toFixed(1)}M impressions, ${ctr}% CTR, zero conversions across ${days} days. The audience has voted with their thumbs.` });
 
-  // OPTIMIZE GATE
-  if (ctr > 3 && lps < 5 && conv > 0) {
-    S.push({ id:'lp_leak', label:'Website Leak', cat:'optimize', weight:72, desc:`High interest (${ctr}% CTR) but the website is failing to close the sale. Optimize the landing page.` });
-  }
+  // Complete structural failure: creative AND LP are both in the floor
+  // BUT only kill if there's also no revenue — if it's making money despite bad scores, upgrade instead
+  if (cs < 2.5 && lps < 3 && conv === 0 && spend > tCpa)
+    S.push({ id:'structural',  label:'Structural Failure',  cat:'kill', weight:88,
+      desc:`Creative ${cs.toFixed(1)}/10, LP ${lps.toFixed(1)}/10, zero conversions. Both ends of the funnel are rejecting this — there is nothing to salvage in its current form.` });
+
+  // ── UPGRADE: Making money but creative/LP is holding it back ────────────
+  // This is the most important insight: an ad EARNING despite poor assets
+  // means upgrading those assets could multiply returns dramatically.
+  if (conv > 0 && rev > 0 && cs < 5 && roas > 1.5)
+    S.push({ id:'creative_ceiling', label:'Creative Ceiling',  cat:'upgrade', weight:95,
+      desc:`Generating ₹${fmt(rev)} revenue at ${roas.toFixed(1)}× ROAS despite creative score ${cs.toFixed(1)}/10. This ad is working harder than it should have to. Upgrade the creative and watch ROAS climb.` });
+
+  if (conv > 0 && rev > 0 && lps < 4.5 && roas > 1.5)
+    S.push({ id:'lp_ceiling',       label:'Landing Page Ceiling', cat:'upgrade', weight:90,
+      desc:`LP score ${lps.toFixed(1)}/10 is suppressing conversions on an ad that's clearly resonating (${roas.toFixed(1)}× ROAS). A better landing experience could halve the CPA.` });
+
+  // Good creative but weak LP — clicks are being bought but not converted
+  if (cs > 6 && lps < 4 && ctr > 2 && conv > 0)
+    S.push({ id:'lp_drag',          label:'LP Drag',              cat:'upgrade', weight:82,
+      desc:`Creative ${cs.toFixed(1)}/10 is driving ${ctr}% CTR, but LP ${lps.toFixed(1)}/10 is squandering those clicks. Fix the page and the creative investment pays off more.` });
+
+  // Strong creative, weak results — creative score high but something in the chain is off
+  if (cs > 7.5 && roas < 2 && conv > 0 && lps < 5)
+    S.push({ id:'creative_wasted',  label:'Creative Wasted on Bad LP', cat:'upgrade', weight:78,
+      desc:`Creative ${cs.toFixed(1)}/10 is doing its job — but LP ${lps.toFixed(1)}/10 is wasting that quality traffic. Align the page with the ad's promise.` });
+
+  // Converting well but video is cutting off — fix hook to extend reach
+  if (vcr !== null && vcr < 30 && conv > 0 && cs < 6)
+    S.push({ id:'video_unlock',     label:'Video Hook Upgrade',   cat:'upgrade', weight:72,
+      desc:`${vcr}% video completion. Most viewers leave before the message lands. Compress the value proposition into the first 3 seconds — this ad's fundamentals are sound.` });
+
+  // ── SCALE: Proven, working, expand budget ────────────────────────────────
+  if (cpa > 0 && cpa <= tCpa && ctr > 2 && days >= 5 && conv > 0)
+    S.push({ id:'proven',      label:'Proven Performer',    cat:'scale', weight:100,
+      desc:`CPA ₹${cpa.toFixed(0)} on target. CTR ${ctr}%. ${days}-day validated run with consistent conversions. Ready for budget expansion.` });
+
+  if (roas >= 10 && conv > 0)
+    S.push({ id:'roas_champ',  label:'ROAS Champion',       cat:'scale', weight:96,
+      desc:`${roas.toFixed(1)}× return. ₹${fmt(rev)} from ₹${fmt(spend)}. This is a rare performer — push budget aggressively before auction dynamics shift.` });
+
+  if (cs > 7 && lps > 7 && roas > 3 && conv > 0)
+    S.push({ id:'full_funnel', label:'Full Funnel Firing',  cat:'scale', weight:88,
+      desc:`Creative ${cs.toFixed(1)}/10, LP ${lps.toFixed(1)}/10, ROAS ${roas.toFixed(1)}×. Every stage of the funnel is working. Scale now.` });
+
+  if (vcr !== null && vcr > 70 && conv > 0 && cpa <= tCpa * 1.2)
+    S.push({ id:'vid_scale',   label:'Video Performer',     cat:'scale', weight:82,
+      desc:`${vcr}% video completion rate with CPA near target. High engagement signals strong audience-message fit.` });
+
+  // ── OPTIMIZE: Specific, addressable technical problems ──────────────────
+  // Hook working, site failing — precise LP fix
+  if (ctr > 3 && lps < 5 && conv === 0)
+    S.push({ id:'lp_zero',     label:'LP Blocking Conversions', cat:'optimize', weight:75,
+      desc:`${ctr}% CTR proves the ad is stopping the scroll — but LP ${lps.toFixed(1)}/10 is converting zero. The creative is working. Fix the page.` });
+
+  // Weak creative with enough spend to diagnose
+  if (cs < 3.5 && ctr < 0.8 && spend > tCpa && conv === 0)
+    S.push({ id:'dead_creative', label:'Creative Not Landing', cat:'optimize', weight:65,
+      desc:`Creative ${cs.toFixed(1)}/10 with ${ctr}% CTR. The ad is not breaking through the feed. A new creative test should be the first intervention.` });
+
+  // Impressions scaling but CTR dying — content-audience mismatch at scale
+  if (impr > 800_000 && ctr < 0.6 && cs < 6 && conv === 0)
+    S.push({ id:'mismatch',    label:'Audience Mismatch',   cat:'optimize', weight:60,
+      desc:`${(impr/1e6).toFixed(1)}M impressions at ${ctr}% CTR. The creative isn't speaking to this audience. Test new targeting or creative angle.` });
+
+  // Video dropping off — hook problem, not content problem
+  if (vcr !== null && vcr < 20 && spend > 500 && conv === 0)
+    S.push({ id:'hook_fail',   label:'Hook Failing',        cat:'optimize', weight:55,
+      desc:`${vcr}% video completion — viewers are leaving in the first seconds. Rework the opening 3 seconds entirely. The rest may be fine.` });
+
+  // ── PAUSE: Audience has seen it too much ─────────────────────────────────
+  if (freq > 8)
+    S.push({ id:'saturated',   label:'Audience Saturated',  cat:'pause', weight:72,
+      desc:`Frequency ${freq.toFixed(1)}× — the same users are being shown this ad far too often. Diminishing returns have set in. Pull back, refresh creative, return in 2 weeks.` });
+
+  if (freq > 5.5 && cpa > tCpa * 0.85)
+    S.push({ id:'fatigue',     label:'Fatigue Setting In',  cat:'pause', weight:58,
+      desc:`Frequency ${freq.toFixed(1)}× and CPA ${fmt(cpa)} approaching ceiling. Performance will degrade as audience tires. Rotate before it drops.` });
+
+  // ── WATCH: Converting but at a cost that needs monitoring ───────────────
+  if (conv > 0 && cpa > 1.8 * tCpa && days >= 7)
+    S.push({ id:'costly',      label:'Costly Conversions',  cat:'watch', weight:55,
+      desc:`CPA ₹${cpa.toFixed(0)} is ${(cpa/tCpa).toFixed(1)}× target. Converting, but the economics don't hold. Watch trend: if CPA doesn't fall in 7 days, move to Optimize.` });
+
+  if (cpc > 12 && conv > 0)
+    S.push({ id:'cpc_margin',  label:'Click Cost Eating Margin', cat:'watch', weight:45,
+      desc:`₹${cpc.toFixed(2)} per click. Conversions are happening but high click cost is compressing margin. Monitor CPA trend.` });
+
+  // ROAS below break-even but early — give it time
+  if (roas > 0 && roas < 1 && days < 14 && conv > 0)
+    S.push({ id:'early_struggle', label:'Early Stage Struggle', cat:'watch', weight:42,
+      desc:`ROAS ${roas.toFixed(2)}× below break-even, but only ${days} days in with ${conv} conversions. Many ads dip early as the algorithm learns. Watch 7 more days.` });
+
+  if (status === 'paused' && roas > 2 && cpa <= tCpa * 1.3)
+    S.push({ id:'paused_win',  label:'Paused With Potential', cat:'watch', weight:38,
+      desc:`Status: Paused — but underlying ROAS is ${roas.toFixed(1)}× with near-target CPA. Understand why this was paused before leaving it dormant.` });
+
+  // ── INFO: Context signals, not actionable alone ──────────────────────────
+  if (days < 4)
+    S.push({ id:'newborn',     label:'Too Early to Judge',  cat:'info', weight:20,
+      desc:`${days} day${days!==1?'s':''} of data. Give it at least 5 days and ₹${(tCpa*3).toLocaleString()} in spend before drawing conclusions.` });
+
+  if (cs > 8 && roas < 2 && conv > 0 && lps > 7)
+    S.push({ id:'mystery',     label:'High Quality, Low Return', cat:'info', weight:15,
+      desc:`Creative ${cs.toFixed(1)}/10 and LP ${lps.toFixed(1)}/10 are both strong. ROAS ${roas.toFixed(1)}× suggests the audience targeting may be the weak link.` });
 
   S.sort((a, b) => b.weight - a.weight);
 
+  // Determine verdict — Upgrade takes priority over Optimize when there's revenue
   let action = 'Monitor';
-  if (S.some(s => s.cat === 'upgrade'))    action = 'Upgrade';
-  else if (S.some(s => s.cat === 'kill'))  action = 'Kill';
-  else if (S.some(s => s.cat === 'scale')) action = 'Scale';
-  else if (S.some(s => s.cat === 'optimize')) action = 'Optimize';
+  const hasCat = (c) => S.some(s => s.cat === c);
+
+  if (hasCat('kill'))         action = 'Kill';
+  else if (hasCat('scale'))   action = 'Scale';
+  else if (hasCat('upgrade')) action = 'Upgrade';
+  else if (S.some(s => s.id === 'saturated' || s.id === 'fatigue')) action = 'Pause';
+  else if (hasCat('optimize')) action = 'Optimize';
+  else if (hasCat('watch'))   action = 'Watch';
 
   return { action, signals: S };
 };
 
-// ─── VISUAL CONSTANTS ─────────────────────────────────────────────────────────
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmt = (n, pre='₹') => {
+  if (n==null||isNaN(n)) return '—';
+  if (n>=1e7) return `${pre}${(n/1e7).toFixed(2)}Cr`;
+  if (n>=1e5) return `${pre}${(n/1e5).toFixed(2)}L`;
+  if (n>=1e3) return `${pre}${(n/1e3).toFixed(1)}K`;
+  return `${pre}${Math.round(n).toLocaleString()}`;
+};
+const fmtPct = n => isNaN(+n) ? '—' : `${(+n).toFixed(2)}%`;
+
+const PLAT = { meta:'#1877F2', facebook:'#1877F2', instagram:'#E1306C', youtube:'#CC0000', google:'#188038' };
+const platColor = (p='') => { const k=p.toLowerCase(); for(const n in PLAT) if(k.includes(n)) return PLAT[n]; return '#9CA3AF'; };
+
+// ─── VISUAL SYSTEM (warm light theme) ────────────────────────────────────────
+const BG   = '#F3EEE5';   // warm parchment
+const SURF = '#FEFCF8';   // slightly warmer white
+const BORD = 'rgba(60,45,20,.09)';
+const TXT  = '#1C1814';
+const TXT2 = '#7A7060';
+const TXT3 = '#B0A898';
+
 const A = {
-  Kill:     { color:'#FF453A', dim:'rgba(255,69,58,.12)',  rowClass:'row-kill' },
-  Scale:    { color:'#32D74B', dim:'rgba(50,215,75,.12)',  rowClass:'row-scale' },
-  Upgrade:  { color:'#5E5CE6', dim:'rgba(94,92,230,.18)',  rowClass:'row-upgrade' },
-  Optimize: { color:'#FF9F0A', dim:'rgba(255,159,10,.12)', rowClass:'row-optimize' },
-  Watch:    { color:'#BF5AF2', dim:'rgba(191,90,242,.10)', rowClass:'row-watch' },
-  Monitor:  { color:'#8E8E93', dim:'rgba(142,142,147,.1)',  rowClass:'row-monitor' },
+  Kill:     { color:'#B91C1C', dim:'rgba(185,28,28,.08)',   muted:'rgba(185,28,28,.35)',  rc:'rk', badge:'#B91C1C', badgeTxt:'#fff'    },
+  Scale:    { color:'#166534', dim:'rgba(22,101,52,.07)',   muted:'rgba(22,101,52,.35)',  rc:'rs', badge:'#166534', badgeTxt:'#fff'    },
+  Upgrade:  { color:'#92400E', dim:'rgba(146,64,14,.07)',   muted:'rgba(146,64,14,.35)',  rc:'ru', badge:'#92400E', badgeTxt:'#fff'    },
+  Optimize: { color:'#B45309', dim:'rgba(180,83,9,.07)',    muted:'rgba(180,83,9,.35)',   rc:'ro', badge:'#B45309', badgeTxt:'#fff'    },
+  Pause:    { color:'#6B7280', dim:'rgba(107,114,128,.07)', muted:'rgba(107,114,128,.3)', rc:'rp', badge:'#6B7280', badgeTxt:'#fff'    },
+  Watch:    { color:'#6D28D9', dim:'rgba(109,40,217,.07)',  muted:'rgba(109,40,217,.3)',  rc:'rw', badge:'#6D28D9', badgeTxt:'#fff'    },
+  Monitor:  { color:TXT3,      dim:'rgba(60,45,20,.04)',    muted:TXT3,                   rc:'rm', badge:'rgba(60,45,20,.08)', badgeTxt:TXT2 },
 };
-const CAT = {
-  kill:     { color:'#FF453A', bg:'rgba(255,69,58,.1)' },
-  scale:    { color:'#32D74B', bg:'rgba(50,215,75,.1)' },
-  upgrade:  { color:'#5E5CE6', bg:'rgba(94,92,230,.15)' },
-  optimize: { color:'#FF9F0A', bg:'rgba(255,159,10,.1)' },
-  info:     { color:'rgba(255,255,255,.4)', bg:'rgba(255,255,255,.05)' },
+
+const CAT_S = {
+  kill:    { color:'#B91C1C', bg:'rgba(185,28,28,.06)' },
+  scale:   { color:'#166534', bg:'rgba(22,101,52,.06)' },
+  upgrade: { color:'#92400E', bg:'rgba(146,64,14,.07)' },
+  optimize:{ color:'#B45309', bg:'rgba(180,83,9,.06)'  },
+  pause:   { color:'#6B7280', bg:'rgba(107,114,128,.06)' },
+  watch:   { color:'#6D28D9', bg:'rgba(109,40,217,.06)' },
+  info:    { color:TXT3,      bg:'rgba(60,45,20,.04)' },
 };
-const PLAT = { meta:'#1877F2', facebook:'#1877F2', instagram:'#E1306C', youtube:'#FF0000', google:'#34A853' };
-const platColor = (p='') => { const k=p.toLowerCase(); for(const n in PLAT) if(k.includes(n)) return PLAT[n]; return '#636366'; };
 
-const fmt = (n, pre='₹') => n ? `${pre}${Math.round(n).toLocaleString()}` : '—';
-const Sk = ({ w='100%', h=13 }) => <div className="shimmer-bg" style={{ width:w, height:h, borderRadius:4 }} />;
+const Sk = ({ w='100%', h=13 }) => <div className="skel" style={{ width:w, height:h }} />;
 
-// ─── THE CORE DASHBOARD ───────────────────────────────────────────────────────
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
-  const [targetCpa, setTargetCpa] = useState(50);
-  const [selectedAd, setSelectedAd] = useState(null);
-  const [filterAction, setFilterAction] = useState('all');
-  const [filterPlatform, setFilterPlatform] = useState('all');
-  const [sortKey, setSortKey] = useState('spend');
-  const [sortDir, setSortDir] = useState(-1);
-  const [page, setPage] = useState(1);
+  const [tCpa,    setTCpa]    = useState(50);
+  const [editCpa, setEditCpa] = useState(false);
+  const [sel,     setSel]     = useState(null);
+  const [fAct,    setFAct]    = useState('all');
+  const [fPlat,   setFPlat]   = useState('all');
+  const [sk,      setSk]      = useState('spend');
+  const [sd,      setSd]      = useState(-1);
 
-  const { data: pageData, isLoading } = useQuery({ 
-    queryKey: ['ads', page], 
-    queryFn: () => fetchPage(page) 
+  const p1     = useQuery({ queryKey:['ads',1], queryFn:()=>fetchPage(1) });
+  const nPages = p1.data?.pagination?.total_pages || 1;
+
+  const rest = useQueries({
+    queries: Array.from({ length: Math.max(0, nPages - 1) }, (_, i) => ({
+      queryKey: ['ads', i + 2],
+      queryFn:  () => fetchPage(i + 2),
+      enabled:  p1.isSuccess && nPages > 1,
+    })),
   });
 
+  const loaded   = 1 + rest.filter(q => q.isSuccess).length;
+  const fetching = p1.isSuccess && loaded < nPages;
+
+  const allRaw = useMemo(() => {
+    const rows = [];
+    if (p1.data?.data) rows.push(...p1.data.data);
+    rest.forEach(q => { if (q.data?.data) rows.push(...q.data.data); });
+    return rows;
+  }, [p1.data, rest]);
+
   const { ads, metrics, platforms } = useMemo(() => {
-    if (!pageData?.data) return { ads: [], metrics: { wasted: 0 }, platforms: [] };
-    const processed = pageData.data.map(raw => {
-      const { action, signals } = analyzeAd(raw, targetCpa);
-      return { 
-        ...raw, 
-        action, 
-        signals,
-        roas: +raw.roas || 0,
-        spend: +raw.spend || 0,
-        conv: +raw.conversions || 0,
-        revenue: +raw.revenue || 0,
-        cpa: +raw.cpa || (+raw.conversions > 0 ? +raw.spend / +raw.conversions : 0)
+    if (!allRaw.length) return { ads:[], metrics:null, platforms:[] };
+
+    const processed = allRaw.map(raw => {
+      const spend = +raw.spend||0, revenue=+raw.revenue||0, conv=+raw.conversions||0;
+      const roas  = +raw.roas||0,  cpa=(+raw.cpa)||(conv>0?spend/conv:0);
+      const { action, signals } = analyzeAd(raw, tCpa);
+      return {
+        ...raw, spend, revenue, conv, roas, cpa,
+        ctr:+raw.ctr||0, cpc:+raw.cpc||0,
+        impressions:+raw.impressions||0, clicks:+raw.clicks||0,
+        days:+raw.days_running||0, freq:+raw.frequency||0,
+        cs:+raw.creative_score||0, lps:+raw.landing_page_score||0,
+        vcr: raw.video_completion_rate!=null ? +raw.video_completion_rate : null,
+        action, signals,
       };
     });
-    const pSet = new Set(processed.map(a => a.platform).filter(Boolean));
-    return { 
-      ads: processed, 
-      metrics: { 
-        wasted: processed.filter(a => a.action === 'Kill').reduce((s, a) => s + a.spend, 0),
-        totalSpend: processed.reduce((s, a) => s + a.spend, 0)
+
+    const byAct = (a) => processed.filter(x => x.action === a);
+    const kills = byAct('Kill');
+    const totalSpend = processed.reduce((s,a)=>s+a.spend,0);
+    const totalRev   = processed.reduce((s,a)=>s+a.revenue,0);
+    const wasted     = kills.reduce((s,a)=>s+a.spend,0);
+    const pSet = new Set(processed.map(a=>a.platform).filter(Boolean));
+
+    return {
+      ads: processed,
+      metrics: {
+        total:processed.length, totalSpend, totalRev, wasted,
+        roas: totalSpend > 0 ? totalRev/totalSpend : 0,
+        kills: kills.length,
+        scales: byAct('Scale').length,
+        upgrades: byAct('Upgrade').length,
+        optimizes: byAct('Optimize').length,
+        wasteRatio: totalSpend > 0 ? wasted/totalSpend : 0,
       },
-      platforms: Array.from(pSet).sort()
+      platforms: Array.from(pSet).sort(),
     };
-  }, [pageData, targetCpa]);
+  }, [allRaw, tCpa]);
 
   const displayed = useMemo(() => {
-    let list = ads.filter(a => (filterAction === 'all' || a.action === filterAction) && (filterPlatform === 'all' || a.platform === filterPlatform));
-    return list.sort((a, b) => ((b[sortKey] ?? 0) - (a[sortKey] ?? 0)) * sortDir);
-  }, [ads, filterAction, filterPlatform, sortKey, sortDir]);
+    let list = [...ads];
+    if (fAct  !== 'all') list = list.filter(a => a.action   === fAct);
+    if (fPlat !== 'all') list = list.filter(a => a.platform === fPlat);
+    const ORD = { Kill:0, Scale:1, Upgrade:2, Optimize:3, Watch:4, Pause:5, Monitor:6 };
+    list.sort((a, b) => {
+      if (fAct === 'all') {
+        const d = (ORD[a.action]??6) - (ORD[b.action]??6);
+        if (d !== 0) return d;
+      }
+      return ((b[sk]??0) - (a[sk]??0)) * sd;
+    });
+    return list;
+  }, [ads, fAct, fPlat, sk, sd]);
+
+  const handleSort = k => { if (sk===k) setSd(d=>d*-1); else { setSk(k); setSd(-1); } };
+  const SC = ({ k }) => sk===k
+    ? (sd===-1 ? <ChevronDown size={9} style={{display:'inline',marginLeft:2,opacity:.5}}/> : <ChevronUp size={9} style={{display:'inline',marginLeft:2,opacity:.5}}/>)
+    : null;
+
+  const isLoading = p1.isLoading;
 
   return (
-    <div className="f-body p-6 md:p-20 min-h-screen">
+    <div className="fb" style={{ minHeight:'100vh', background:BG, color:TXT }}>
       <Fonts />
 
-      {/* HEADER UNIT */}
-      <header className="mb-20 flex flex-col md:flex-row justify-between items-start md:items-end gap-12 border-b border-white/5 pb-16">
-        <div>
-          <h1 className="f-display text-7xl md:text-[10rem] font-black tracking-tighter text-white mb-6 leading-[0.8] italic">Apex Impact</h1>
-          <p className="text-zinc-500 font-medium tracking-[0.4em] uppercase text-sm flex items-center gap-3">
-            <TrendingUp size={18} className="text-emerald-500" /> Capital Yield Control Center
-          </p>
+      {/* Page-load progress */}
+      {fetching && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, height:2, zIndex:100 }}>
+          <div style={{ height:'100%', background:'#92400E', width:`${(loaded/nPages)*100}%`, transition:'width .4s ease', borderRadius:'0 1px 1px 0', opacity:.7 }} />
         </div>
-        <div className="glass-card p-12 min-w-[360px] transition-all hover:translate-y-[-4px]">
-          <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mb-4">Capital at Risk (Page)</p>
-          <div className="f-display text-7xl text-red-500 leading-none">{fmt(metrics.wasted)}</div>
-        </div>
-      </header>
+      )}
 
-      {/* STRATEGIC NOTE (EXECUTIVE SUMMARY) */}
-      <div className="mb-16 bg-blue-950/20 border border-blue-500/20 p-10 rounded-[3rem] flex items-start gap-8 shadow-2xl">
-        <div className="bg-blue-600 p-4 rounded-3xl text-white shadow-xl shadow-blue-600/30"><Info size={32} /></div>
-        <div>
-          <h4 className="font-black text-blue-400 uppercase text-xs tracking-widest mb-2">How to utilize this Dashboard</h4>
-          <p className="text-blue-100/70 text-lg leading-relaxed max-w-6xl font-medium italic">
-            This system identifies where your money is working. <strong className="text-white underline decoration-red-500">Kill</strong> indicates ads that burn cash without sales. <strong className="text-white underline decoration-emerald-500">Scale</strong> marks your top earners. <strong className="text-white underline decoration-indigo-400 font-black">Upgrade</strong> is a special protection tag—it means an ad is making money despite poor visuals. Do not stop these ads; simply refresh the creative to double your ROI.
-          </p>
+      {/* ── NAV ── */}
+      <div style={{ borderBottom:`1px solid ${BORD}`, padding:'16px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:SURF }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:16 }}>
+          <h1 className="fd" style={{ fontSize:20, fontWeight:400, fontStyle:'italic', letterSpacing:'-.01em', color:TXT }}>
+            Ad Intelligence
+          </h1>
+          <span style={{ fontSize:11, color:TXT3, fontWeight:300 }}>
+            {metrics?.total.toLocaleString()||'—'} ads
+            {fetching && <span style={{ color:'#92400E', marginLeft:8, opacity:.75 }}>· loading {loaded}/{nPages}…</span>}
+          </span>
         </div>
-      </div>
-
-      {/* CONTROL MATRIX (PLATFORMS + ACTIONS) */}
-      <div className="mb-12 flex flex-wrap justify-between items-center gap-10">
-        <div className="flex flex-wrap gap-4 items-center">
-            {['all', 'Kill', 'Scale', 'Upgrade', 'Optimize'].map(f => (
-            <button key={f} onClick={() => setFilterAction(f)} className="pill filter-pill" 
-              style={{ padding:'12px 30px', background: filterAction===f?'#fff':'rgba(255,255,255,0.04)', color: filterAction===f?'#000':'rgba(255,255,255,0.4)', fontSize:'12px', fontWeight:900 }}>
-              {f.toUpperCase()}
-            </button>
-            ))}
-            <div className="h-6 w-[1px] bg-white/10 mx-2" />
-            <button onClick={() => setFilterPlatform('all')} className="pill filter-pill" 
-              style={{ padding:'12px 30px', background: filterPlatform==='all'?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', fontSize:'12px', fontWeight:900 }}>ALL PLATFORMS</button>
-            {platforms.map(p => (
-            <button key={p} onClick={() => setFilterPlatform(p)} className="pill filter-pill" 
-              style={{ padding:'12px 30px', background: filterPlatform===p?platColor(p):'rgba(255,255,255,0.04)', color: filterPlatform===p?'#fff':'rgba(255,255,255,0.4)', fontSize:'12px', fontWeight:900 }}>
-              {p.toUpperCase()}
-            </button>
-            ))}
-        </div>
-
-        <div className="flex items-center gap-6 bg-white/5 px-8 py-4 rounded-full border border-white/10 shadow-lg">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} className="text-zinc-500 hover:text-white transition-all font-bold tracking-widest text-xs uppercase">Back</button>
-            <span className="text-xs font-black text-white px-4 border-x border-white/10 uppercase tracking-widest">Page {page}</span>
-            <button onClick={() => setPage(p => p + 1)} className="text-zinc-500 hover:text-white transition-all font-bold tracking-widest text-xs uppercase">Next</button>
+        {/* CPA editor */}
+        <div onClick={()=>setEditCpa(true)}
+          style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 13px', border:`1px solid ${BORD}`, borderRadius:8, cursor:'text', background:BG }}>
+          <Target size={12} style={{ color:TXT3 }} />
+          <span style={{ fontSize:11, color:TXT3, textTransform:'uppercase', letterSpacing:'.07em', fontWeight:500 }}>Target CPA</span>
+          {editCpa ? (
+            <input type="number" value={tCpa} autoFocus
+              onChange={e=>setTCpa(Math.max(1,+e.target.value))}
+              onBlur={()=>setEditCpa(false)}
+              style={{ width:56, background:'transparent', border:'none', outline:'none', color:TXT, fontSize:13, fontWeight:500, textAlign:'right', fontFamily:'inherit' }} />
+          ) : (
+            <span style={{ fontSize:13, fontWeight:500, color:TXT }}>₹{tCpa}</span>
+          )}
         </div>
       </div>
 
-      {/* BATTLEGROUND DATA MATRIX */}
-      <div className="glass-card overflow-hidden shadow-2xl">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-white/5">
-              <th className="p-10 text-[11px] font-black uppercase text-zinc-600 tracking-[0.2em]">Status Directive</th>
-              <th className="p-10 text-[11px] font-black uppercase text-zinc-600 tracking-[0.2em]">Campaign Asset</th>
-              <th className="p-10 text-right text-[11px] font-black uppercase text-zinc-600 tracking-[0.2em]">Net ROAS</th>
-              <th className="p-10 text-right text-[11px] font-black uppercase text-zinc-600 tracking-[0.2em]">Allocated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? <tr><td colSpan="4" className="p-60 text-center text-zinc-600 font-display italic text-4xl animate-pulse tracking-tighter">Syncing Signal Lake...</td></tr> : 
-              displayed.map((ad, i) => (
-              <tr key={i} onClick={() => setSelectedAd(ad)} className={`row-base row-${ad.action.toLowerCase()} anim-up`} style={{ animationDelay: `${i*0.02}s` }}>
-                <td className="p-10">
-                  <span className={`px-6 py-2 rounded-full text-[11px] font-black tracking-widest uppercase border`} style={{ background:A[ad.action]?.dim, color:A[ad.action]?.color, borderColor: 'rgba(255,255,255,0.05)' }}>{ad.action}</span>
-                </td>
-                <td className="p-10">
-                  <div className="f-display text-5xl text-white italic tracking-tight leading-none mb-2">{ad.brand}</div>
-                  <div className="text-[12px] font-bold text-zinc-500 uppercase tracking-[0.2em] flex items-center gap-3">
-                    {ad.platform} <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" /> {ad.category}
-                  </div>
-                </td>
-                <td className="p-10 text-right">
-                  <div className="f-display text-6xl text-white leading-none tracking-tighter">{(+ad.roas).toFixed(2)}×</div>
-                </td>
-                <td className="p-10 text-right">
-                   <div className="text-3xl font-black text-white leading-none mb-1">{fmt(+ad.spend)}</div>
-                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">₹{(+ad.cpa).toFixed(0)} CPA</div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* INTELLIGENCE DOSSIER (DEEP DATA BINDING) */}
-      {selectedAd && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
-          <div onClick={()=>setSelectedAd(null)} className="absolute inset-0 bg-black/90 backdrop-blur-3xl transition-all" />
-          <div className="anim-slide glass-card" style={{ position:'relative', width:'50%', height:'100%', padding:'100px', overflowY:'auto', borderRadius:0, borderLeft:'1px solid rgba(255,255,255,0.15)' }}>
-            <button onClick={()=>setSelectedAd(null)} className="absolute top-12 right-12 p-5 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:rotate-90"><X size={40}/></button>
-            <span className="text-[14px] font-black text-zinc-500 uppercase tracking-[0.5em] block mb-8 border-b border-zinc-800 pb-4">Internal Asset Intelligence</span>
-            <h2 className="f-display text-9xl text-white italic leading-[0.8] mb-12 tracking-tighter">{selectedAd.brand}</h2>
-            
-            <div className={`p-12 rounded-[3.5rem] shadow-2xl mb-16 flex flex-col gap-8 transition-all hover:scale-[1.01]`} 
-                 style={{ background:A[selectedAd.action]?.dim, borderLeft:`8px solid ${A[selectedAd.action]?.color}`, boxShadow:`0 30px 60px -12px ${A[selectedAd.action]?.dim}` }}>
-              <div className="flex items-center gap-6">
-                <Zap size={48} color={A[selectedAd.action]?.color} fill={A[selectedAd.action]?.color} />
-                <h3 className="text-4xl font-black uppercase tracking-tighter italic" style={{ color:A[selectedAd.action]?.color }}>{selectedAd.action} VERDICT</h3>
+      {/* ── HERO ── */}
+      <div style={{ padding:'44px 40px 36px', borderBottom:`1px solid ${BORD}` }}>
+        {isLoading ? (
+          <div>
+            <Sk w={240} h={56} /><div style={{height:12}}/>
+            <div style={{display:'flex',gap:20}}>
+              {[120,100,100,90,90].map((w,i)=><Sk key={i} w={w} h={32}/>)}
+            </div>
+          </div>
+        ) : metrics ? (
+          <>
+            {/* Primary: wasted spend */}
+            <div className="au" style={{ display:'flex', alignItems:'flex-end', gap:36, marginBottom:30, flexWrap:'wrap' }}>
+              <div>
+                <p style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.13em', color:TXT3, fontWeight:500, marginBottom:9 }}>
+                  Capital at risk
+                </p>
+                <div className="fd" style={{ fontSize:58, fontWeight:300, lineHeight:1, color:'#B91C1C', letterSpacing:'-.03em' }}>
+                  {fmt(metrics.wasted)}
+                </div>
+                <p style={{ fontSize:12, color:'rgba(185,28,28,.5)', marginTop:6, fontWeight:300 }}>
+                  {metrics.kills} ads confirmed for termination &nbsp;·&nbsp; {(metrics.wasteRatio*100).toFixed(1)}% of total budget
+                </p>
               </div>
-              <p className="text-2xl font-medium leading-relaxed text-white/90 italic font-['Inter']">{selectedAd.signals[0]?.desc || "Stable metrics detected. Campaign continues to gather market data."}</p>
+              {/* Waste bar */}
+              <div style={{ flex:'1 1 140px', maxWidth:180, paddingBottom:6 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                  <span style={{ fontSize:9, color:TXT3, textTransform:'uppercase', letterSpacing:'.1em' }}>Waste</span>
+                  <span style={{ fontSize:10, color:'rgba(185,28,28,.6)' }}>{(metrics.wasteRatio*100).toFixed(1)}%</span>
+                </div>
+                <div style={{ height:2, background:'rgba(60,45,20,.1)', borderRadius:1, overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${metrics.wasteRatio*100}%`, background:'#B91C1C', transition:'width 1s cubic-bezier(.22,.68,0,1.2)' }} />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-10 mb-20">
+            {/* Secondary strip */}
+            <div style={{ display:'flex', gap:0, flexWrap:'wrap' }}>
               {[
-                { l:'Creative Asset Rank', v:`${(+selectedAd.creative_score).toFixed(1)}/10`, c:(+selectedAd.creative_score < 5 ? '#EF4444' : '#32D74B') },
-                { l:'Conversion Page Strength', v:`${(+selectedAd.landing_page_score).toFixed(1)}/10`, c:'#32D74B' },
-                { l:'Market Impressions', v:(+selectedAd.impressions).toLocaleString(), c:'#fff' },
-                { l:'Direct Intent (CTR)', v:`${(+selectedAd.ctr).toFixed(2)}%`, c:'#fff' },
-                { l:'Net Conversions', v:(+selectedAd.conversions).toLocaleString(), c:'#fff' },
-                { l:'Frequency Saturation', v:`${(+selectedAd.frequency).toFixed(2)}x`, c:(+selectedAd.frequency > 6 ? '#FF9F0A' : '#fff') }
-              ].map((s, i) => (
-                <div key={i} className="glass-card" style={{ padding:'40px', borderRadius:'3rem' }}>
-                  <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-3">{s.l}</p>
-                  <p className="f-display text-6xl tracking-tighter" style={{ color:s.c }}>{s.v}</p>
+                { l:'Total spend',   v:fmt(metrics.totalSpend),          c:TXT },
+                { l:'Total revenue', v:fmt(metrics.totalRev),            c:TXT },
+                { l:'Overall ROAS',  v:`${metrics.roas.toFixed(2)}×`,    c:metrics.roas>=2?'#166534':metrics.roas<1?'#B91C1C':TXT },
+                { l:'Scale',         v:metrics.scales,                   c:'#166534' },
+                { l:'Upgrade',       v:metrics.upgrades,                 c:'#92400E' },
+                { l:'Optimize',      v:metrics.optimizes,                c:'#B45309' },
+              ].map(({ l, v, c }, i) => (
+                <div key={l} className="au" style={{ animationDelay:`${i*40}ms`, paddingRight:24, borderRight:`1px solid ${BORD}`, marginRight:24, marginBottom:8 }}>
+                  <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:TXT3, fontWeight:500, marginBottom:4 }}>{l}</p>
+                  <p className="fd" style={{ fontSize:24, fontWeight:300, lineHeight:1, color:c, fontVariantNumeric:'tabular-nums', letterSpacing:'-.01em' }}>{v}</p>
                 </div>
               ))}
             </div>
+          </>
+        ) : null}
+      </div>
 
-            <div className="border-t-2 border-zinc-900 pt-16 space-y-12 mb-20">
-               <h4 className="text-md font-black uppercase tracking-[0.5em] text-white border-b border-zinc-900 pb-6 flex items-center gap-4">
-                 <Sparkles size={24} className="text-indigo-400"/> Operational Data Matrix
-               </h4>
-               <div className="grid grid-cols-2 gap-y-16">
-                 <div><span className="text-[13px] font-black text-zinc-600 uppercase block mb-4 tracking-widest">Target Audience</span><span className="text-3xl font-black text-white uppercase tracking-tighter">{selectedAd.target_audience}</span></div>
-                 <div><span className="text-[13px] font-black text-zinc-600 uppercase block mb-4 tracking-widest">Creative Theme</span><span className="text-3xl font-black text-indigo-400 italic underline decoration-indigo-800 underline-offset-8">{selectedAd.creative_theme}</span></div>
-                 <div><span className="text-[13px] font-black text-zinc-600 uppercase block mb-4 tracking-widest">Video Retention</span><span className="text-3xl font-black text-white">{selectedAd.video_completion_rate ? `${selectedAd.video_completion_rate}%` : 'N/A'}</span></div>
-                 <div><span className="text-[13px] font-black text-zinc-600 uppercase block mb-4 tracking-widest">Unit Cost (CPC)</span><span className="text-3xl font-black text-white uppercase tracking-tighter">₹{(+selectedAd.cpc).toFixed(2)}</span></div>
-                 <div><span className="text-[13px] font-black text-zinc-600 uppercase block mb-4 tracking-widest">Funnel Context</span><span className="text-3xl font-black text-white uppercase">{selectedAd.status} • {selectedAd.ad_type}</span></div>
-                 <div><span className="text-[13px] font-black text-zinc-600 uppercase block mb-4 tracking-widest">Run Duration</span><span className="text-3xl font-black text-white">{selectedAd.days_running} Days Live</span></div>
-               </div>
+      {/* ── FILTERS ── */}
+      <div style={{ padding:'13px 40px', borderBottom:`1px solid ${BORD}`, background:SURF, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
+        {['all','Kill','Scale','Upgrade','Optimize','Watch','Pause','Monitor'].map(f => {
+          const active = fAct === f;
+          const cfg = A[f];
+          const count = f !== 'all' ? ads.filter(a=>a.action===f).length : ads.length;
+          return (
+            <button key={f} onClick={()=>setFAct(f)} className="fp"
+              style={{
+                padding:'5px 13px', borderRadius:100, fontSize:11, fontWeight:500, cursor:'pointer', fontFamily:'inherit',
+                border:`1px solid ${active ? (cfg ? cfg.muted : BORD) : BORD}`,
+                background: active ? (cfg ? cfg.dim : 'rgba(60,45,20,.05)') : 'transparent',
+                color:      active ? (cfg ? cfg.color : TXT) : TXT2,
+                transition: 'all .13s',
+              }}>
+              {f === 'all' ? 'All' : f}
+              <span style={{ marginLeft:5, opacity:.45, fontSize:10 }}>{count}</span>
+            </button>
+          );
+        })}
+        {platforms.length > 0 && <div style={{ width:1, height:13, background:BORD, margin:'0 3px' }} />}
+        {platforms.map(p => {
+          const active = fPlat === p;
+          const c = platColor(p);
+          return (
+            <button key={p} onClick={()=>setFPlat(active?'all':p)} className="fp"
+              style={{
+                padding:'5px 13px', borderRadius:100, fontSize:11, fontWeight:500, cursor:'pointer', fontFamily:'inherit',
+                border:`1px solid ${active ? `${c}44` : BORD}`,
+                background: active ? `${c}12` : 'transparent',
+                color: active ? c : TXT2,
+                transition:'all .13s',
+              }}>
+              <span style={{ display:'inline-block', width:5, height:5, borderRadius:'50%', background:c, marginRight:5, verticalAlign:'middle' }} />
+              {p}
+            </button>
+          );
+        })}
+        <span style={{ marginLeft:'auto', fontSize:11, color:TXT3 }}>{displayed.length} shown</span>
+      </div>
+
+      {/* ── TABLE ── */}
+      <div style={{ overflowX:'auto', background:SURF }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', minWidth:860 }}>
+          <thead>
+            <tr style={{ borderBottom:`1px solid ${BORD}`, background:BG }}>
+              {[
+                { label:'Action',  key:null,        w:90  },
+                { label:'Brand',   key:null,        w:null },
+                { label:'Spend',   key:'spend',     w:105 },
+                { label:'Revenue', key:'revenue',   w:115 },
+                { label:'ROAS',    key:'roas',      w:80  },
+                { label:'CPA',     key:'cpa',       w:95  },
+                { label:'CTR',     key:'ctr',       w:72  },
+                { label:'Conv.',   key:'conv',      w:72  },
+                { label:'Days',    key:'days',      w:60  },
+                { label:'Signals', key:null,        w:175 },
+              ].map(({ label, key, w }) => (
+                <th key={label} onClick={()=>key&&handleSort(key)}
+                  style={{ padding:'9px 16px', textAlign:'left', fontSize:9, fontWeight:500, textTransform:'uppercase',
+                    letterSpacing:'.12em', color:TXT3, cursor:key?'pointer':'default',
+                    userSelect:'none', whiteSpace:'nowrap', width:w||undefined }}>
+                  {label}<SC k={key} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              Array.from({length:14}).map((_,i)=>(
+                <tr key={i} style={{ borderBottom:`1px solid ${BORD}` }}>
+                  {Array.from({length:10}).map((_,j)=>(
+                    <td key={j} style={{ padding:'13px 16px' }}><Sk w={j===1?110:55} h={11} /></td>
+                  ))}
+                </tr>
+              ))
+            ) : displayed.map((ad, i) => {
+              const cfg = A[ad.action] || A.Monitor;
+              const top = ad.signals[0];
+              const nK  = ad.signals.filter(s=>s.cat==='kill').length;
+              const nS  = ad.signals.filter(s=>s.cat==='scale').length;
+              const nU  = ad.signals.filter(s=>s.cat==='upgrade').length;
+              const shown = nK + nS + nU + (top && !['kill','scale','upgrade'].includes(top.cat) ? 1 : 0);
+              return (
+                <tr key={ad.ad_id||i} onClick={()=>setSel(ad)}
+                  className={`row ${cfg.rc} au`}
+                  style={{ borderBottom:`1px solid ${BORD}`, animationDelay:`${Math.min(i*14,260)}ms` }}>
+
+                  <td style={{ padding:'13px 16px' }}>
+                    <span style={{ fontSize:11, fontWeight:500, color:cfg.color, letterSpacing:'.03em' }}>
+                      {ad.action}
+                    </span>
+                  </td>
+
+                  <td style={{ padding:'13px 16px' }}>
+                    <div className="fd" style={{ fontSize:16, fontWeight:400, fontStyle:'italic', color:TXT, lineHeight:1.2 }}>
+                      {ad.brand || ad.ad_id}
+                    </div>
+                    <div style={{ fontSize:10, color:TXT3, marginTop:3, display:'flex', alignItems:'center', gap:5 }}>
+                      <span style={{ display:'inline-block', width:4, height:4, borderRadius:'50%', background:platColor(ad.platform) }} />
+                      {ad.platform} · {ad.category} · {ad.ad_type}
+                    </div>
+                  </td>
+
+                  <td style={{ padding:'13px 16px', fontSize:12, color:TXT2, fontVariantNumeric:'tabular-nums' }}>
+                    {fmt(ad.spend)}
+                  </td>
+
+                  <td style={{ padding:'13px 16px', fontSize:12, color:TXT2, fontVariantNumeric:'tabular-nums', opacity:.85 }}>
+                    {fmt(ad.revenue)}
+                  </td>
+
+                  <td style={{ padding:'13px 16px' }}>
+                    <span className="fd" style={{
+                      fontSize:17, fontWeight:400, lineHeight:1, fontVariantNumeric:'tabular-nums',
+                      color: ad.roas>=2?'#166534' : ad.roas>0&&ad.roas<1?'#B91C1C' : TXT
+                    }}>
+                      {ad.roas.toFixed(2)}×
+                    </span>
+                  </td>
+
+                  <td style={{ padding:'13px 16px', fontSize:12, fontVariantNumeric:'tabular-nums',
+                    color: ad.cpa <= tCpa ? '#166534' : ad.cpa > tCpa*1.8 ? '#B91C1C' : '#B45309' }}>
+                    {fmt(ad.cpa)}
+                  </td>
+
+                  <td style={{ padding:'13px 16px', fontSize:12, color:TXT3, fontVariantNumeric:'tabular-nums' }}>
+                    {fmtPct(ad.ctr)}
+                  </td>
+
+                  <td style={{ padding:'13px 16px', fontSize:12, color:TXT3, fontVariantNumeric:'tabular-nums' }}>
+                    {ad.conv.toLocaleString()}
+                  </td>
+
+                  <td style={{ padding:'13px 16px', fontSize:11, color:TXT3 }}>
+                    {ad.days}d
+                  </td>
+
+                  <td style={{ padding:'13px 16px' }}>
+                    <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                      {nK>0 && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:100, background:'rgba(185,28,28,.1)', color:'#B91C1C', fontWeight:500 }}>{nK} kill</span>}
+                      {nS>0 && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:100, background:'rgba(22,101,52,.1)', color:'#166534', fontWeight:500 }}>{nS} scale</span>}
+                      {nU>0 && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:100, background:'rgba(146,64,14,.1)', color:'#92400E', fontWeight:500 }}>{nU} upgrade</span>}
+                      {top && !['kill','scale','upgrade'].includes(top.cat) && (
+                        <span style={{ fontSize:10, padding:'2px 8px', borderRadius:100, background:CAT_S[top.cat]?.bg, color:CAT_S[top.cat]?.color }}>
+                          {top.label}
+                        </span>
+                      )}
+                      {ad.signals.length > shown && (
+                        <span style={{ fontSize:10, color:TXT3, padding:'2px 3px' }}>+{ad.signals.length-shown}</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {!isLoading && displayed.length === 0 && (
+          <div style={{ padding:'72px 40px', textAlign:'center', color:TXT3, fontSize:14 }}>
+            No ads match the current filter.
+          </div>
+        )}
+      </div>
+
+      {/* ── DOSSIER ── */}
+      {sel && (() => {
+        const cfg = A[sel.action] || A.Monitor;
+        return (
+          <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', justifyContent:'flex-end' }}>
+            <div onClick={()=>setSel(null)} style={{ position:'absolute', inset:0, background:'rgba(20,15,8,.4)', backdropFilter:'blur(6px)' }} />
+            <div className="as fb" style={{ position:'relative', width:'100%', maxWidth:460, background:SURF, borderLeft:`1px solid ${BORD}`, height:'100%', overflowY:'auto', display:'flex', flexDirection:'column' }}>
+
+              {/* Header */}
+              <div style={{ padding:'22px 26px 18px', borderBottom:`1px solid ${BORD}`, position:'sticky', top:0, background:SURF, zIndex:10 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                  <div>
+                    <span style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.14em', color:TXT3, display:'block', marginBottom:7 }}>
+                      Intelligence Brief
+                    </span>
+                    <h2 className="fd" style={{ fontSize:28, fontWeight:400, fontStyle:'italic', color:TXT, lineHeight:1.2, letterSpacing:'-.01em' }}>
+                      {sel.brand || sel.ad_id}
+                    </h2>
+                    <p style={{ fontSize:11, color:TXT3, marginTop:5, display:'flex', alignItems:'center', gap:5 }}>
+                      <span style={{ display:'inline-block', width:5, height:5, borderRadius:'50%', background:platColor(sel.platform) }} />
+                      {sel.platform} · {sel.ad_type} · {sel.category}
+                    </p>
+                  </div>
+                  <button onClick={()=>setSel(null)}
+                    style={{ background:BG, border:`1px solid ${BORD}`, borderRadius:'50%', width:30, height:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:TXT2, flexShrink:0, marginTop:2 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+                {/* Verdict bar */}
+                <div style={{ marginTop:13, padding:'10px 14px', borderRadius:8, background:cfg.dim, borderLeft:`3px solid ${cfg.color}` }}>
+                  <span style={{ fontSize:10, fontWeight:600, color:cfg.color, textTransform:'uppercase', letterSpacing:'.07em' }}>{sel.action}</span>
+                  <p style={{ fontSize:12, color:TXT2, marginTop:3, lineHeight:1.55 }}>
+                    {sel.signals[0]?.desc || 'No dominant signal detected. Performance is within normal range.'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ padding:'22px 26px', flex:1 }}>
+                {/* Key numbers */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:7, marginBottom:22 }}>
+                  {[
+                    { l:'Spend',    v:fmt(sel.spend) },
+                    { l:'Revenue',  v:fmt(sel.revenue) },
+                    { l:'ROAS',     v:`${sel.roas.toFixed(2)}×`,  c:sel.roas>=2?'#166534':sel.roas>0&&sel.roas<1?'#B91C1C':TXT },
+                    { l:'CPA',      v:fmt(sel.cpa),               c:sel.cpa<=tCpa?'#166534':sel.cpa>tCpa*1.8?'#B91C1C':'#B45309' },
+                    { l:'CTR',      v:fmtPct(sel.ctr) },
+                    { l:'Conv.',    v:sel.conv.toLocaleString() },
+                    { l:'Creative', v:`${sel.cs.toFixed(1)}/10`,  c:sel.cs>=7?'#166534':sel.cs<4?'#B91C1C':TXT },
+                    { l:'LP score', v:`${sel.lps.toFixed(1)}/10`, c:sel.lps>=7?'#166534':sel.lps<4?'#B91C1C':TXT },
+                    { l:'Freq.',    v:`${sel.freq.toFixed(1)}×`,  c:sel.freq>7?'#B91C1C':TXT },
+                  ].map(({ l, v, c=TXT2 }) => (
+                    <div key={l} style={{ padding:'9px 11px', border:`1px solid ${BORD}`, borderRadius:7, background:BG }}>
+                      <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.1em', color:TXT3, fontWeight:500, marginBottom:4 }}>{l}</p>
+                      <p className="fd" style={{ fontSize:18, fontWeight:300, lineHeight:1, color:c, fontVariantNumeric:'tabular-nums' }}>{v}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Details */}
+                <div style={{ marginBottom:22 }}>
+                  {[
+                    ['Audience',     sel.target_audience],
+                    ['Theme',        sel.creative_theme],
+                    ['Status',       sel.status],
+                    ['Ad type',      sel.ad_type],
+                    ['Days live',    `${sel.days}d (since ${sel.start_date})`],
+                    ['CPC',          fmt(sel.cpc)],
+                    ['Impressions',  (+sel.impressions||0).toLocaleString()],
+                    ['Clicks',       (+sel.clicks||0).toLocaleString()],
+                    ['Video compl.', sel.vcr!=null?`${sel.vcr}%`:'N/A'],
+                  ].map(([label, value]) => (
+                    <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', padding:'7px 0', borderBottom:`1px solid ${BORD}` }}>
+                      <span style={{ fontSize:11, color:TXT3 }}>{label}</span>
+                      <span style={{ fontSize:12, color:TXT2 }}>{value||'—'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Signals */}
+                <div>
+                  <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.12em', color:TXT3, fontWeight:500, marginBottom:10 }}>
+                    {sel.signals.length} signal{sel.signals.length!==1?'s':''} detected
+                  </p>
+                  <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+                    {sel.signals.length === 0 ? (
+                      <p className="fd" style={{ fontSize:14, color:TXT3, fontStyle:'italic' }}>
+                        No active signals — performance within normal range.
+                      </p>
+                    ) : sel.signals.map(sig => {
+                      const sc = CAT_S[sig.cat] || CAT_S.info;
+                      return (
+                        <div key={sig.id} style={{ padding:'10px 13px', borderRadius:7, background:sc.bg, borderLeft:`2px solid ${sc.color}` }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+                            <span style={{ fontSize:10, fontWeight:600, color:sc.color, letterSpacing:'.04em' }}>{sig.label}</span>
+                            <span style={{ fontSize:9, color:TXT3, textTransform:'uppercase', letterSpacing:'.07em' }}>{sig.cat}</span>
+                          </div>
+                          <p style={{ fontSize:12, color:TXT2, lineHeight:1.55 }}>{sig.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
