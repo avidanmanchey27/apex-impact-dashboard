@@ -129,25 +129,69 @@ const Donut=({data,size})=>{
   );
 };
 
+// Asset Quality Map
+// X-axis: LP Score  0→10  (left = weak, right = strong)
+// Y-axis: Creative  0→10  (bottom = weak, top = strong)
+// SVG Y goes DOWN, so high creative score → small y value → near the top. Labels placed accordingly.
 const ScoreMap=({cs,lps,action})=>{
-  const W=156,P=24,inner=W-P*2,mid=P+inner/2;
-  const x=P+(lps/10)*inner,y=P+((10-cs)/10)*inner;
+  const W=164, P=20, inner=W-P*2, mid=P+inner/2;
+  // Dot: high LP → right, high creative → top (small y)
+  const dotX=P+(lps/10)*inner;
+  const dotY=P+((10-cs)/10)*inner;
   const dc=ACT[action]?ACT[action].c:C.ink3;
+  const F='Plus Jakarta Sans,sans-serif';
+
+  // Quadrant colours (now correct):
+  // top-left    = high creative, low LP  → fix LP   (amber)
+  // top-right   = high creative, high LP → both good (green)
+  // bottom-left = low creative,  low LP  → both weak (red)
+  // bottom-right= low creative,  high LP → fix creative (upgrade brown)
   return React.createElement('svg',{width:W,height:W,viewBox:'0 0 '+W+' '+W},
-    React.createElement('rect',{x:P,y:P,width:inner/2,height:inner/2,fill:'rgba(192,57,43,.06)',rx:3}),
-    React.createElement('rect',{x:mid,y:P,width:inner/2,height:inner/2,fill:'rgba(196,122,30,.06)',rx:3}),
-    React.createElement('rect',{x:P,y:mid,width:inner/2,height:inner/2,fill:'rgba(91,63,160,.06)',rx:3}),
-    React.createElement('rect',{x:mid,y:mid,width:inner/2,height:inner/2,fill:'rgba(26,107,60,.08)',rx:3}),
-    React.createElement('line',{x1:mid,y1:P,x2:mid,y2:W-P,stroke:C.bord2,strokeWidth:0.5}),
-    React.createElement('line',{x1:P,y1:mid,x2:W-P,y2:mid,stroke:C.bord2,strokeWidth:0.5}),
-    React.createElement('rect',{x:P,y:P,width:inner,height:inner,fill:'none',stroke:C.bord2,strokeWidth:0.7,rx:4}),
-    React.createElement('text',{x:P+5,y:P+10,fontSize:7,fill:'rgba(192,57,43,.55)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'Both weak'),
-    React.createElement('text',{x:W-P-4,y:P+10,textAnchor:'end',fontSize:7,fill:'rgba(196,122,30,.55)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'LP strong'),
-    React.createElement('text',{x:P+5,y:W-P-4,fontSize:7,fill:'rgba(91,63,160,.55)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'Creative strong'),
-    React.createElement('text',{x:W-P-4,y:W-P-4,textAnchor:'end',fontSize:7,fill:'rgba(26,107,60,.6)',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:'600'},'Both strong'),
-    React.createElement('circle',{cx:x,cy:y,r:10,fill:dc,opacity:0.14}),
-    React.createElement('circle',{cx:x,cy:y,r:5.5,fill:dc,opacity:0.9}),
-    React.createElement('circle',{cx:x,cy:y,r:5.5,fill:'none',stroke:'rgba(255,255,255,.7)',strokeWidth:1.2})
+
+    // Quadrant fills
+    React.createElement('rect',{x:P,    y:P,    width:inner/2,height:inner/2,fill:'rgba(196,122,30,.07)',rx:2}), // top-left:  fix LP
+    React.createElement('rect',{x:mid,  y:P,    width:inner/2,height:inner/2,fill:'rgba(26,107,60,.09)', rx:2}), // top-right: both strong
+    React.createElement('rect',{x:P,    y:mid,  width:inner/2,height:inner/2,fill:'rgba(192,57,43,.07)', rx:2}), // bottom-left: both weak
+    React.createElement('rect',{x:mid,  y:mid,  width:inner/2,height:inner/2,fill:'rgba(160,82,45,.07)', rx:2}), // bottom-right: fix creative
+
+    // Grid lines
+    React.createElement('line',{x1:mid,y1:P,x2:mid,y2:P+inner,stroke:C.bord2,strokeWidth:0.6}),
+    React.createElement('line',{x1:P,y1:mid,x2:P+inner,y2:mid,stroke:C.bord2,strokeWidth:0.6}),
+    React.createElement('rect',{x:P,y:P,width:inner,height:inner,fill:'none',stroke:C.bord2,strokeWidth:0.8,rx:3}),
+
+    // Axis score ticks
+    React.createElement('text',{x:P,    y:P-4, fontSize:7,fill:C.ink4,fontFamily:F,textAnchor:'middle'},'10'),
+    React.createElement('text',{x:P,    y:P+inner+9,fontSize:7,fill:C.ink4,fontFamily:F,textAnchor:'middle'},'0'),
+    React.createElement('text',{x:P+inner,y:P+inner+9,fontSize:7,fill:C.ink4,fontFamily:F,textAnchor:'middle'},'10'),
+
+    // Axis labels
+    React.createElement('text',{x:P+inner/2,y:P+inner+16,fontSize:7.5,fill:C.ink3,fontFamily:F,textAnchor:'middle',fontWeight:'600'},'LP Score →'),
+    React.createElement('text',{x:P-12,y:P+inner/2,fontSize:7.5,fill:C.ink3,fontFamily:F,textAnchor:'middle',fontWeight:'600',transform:'rotate(-90,'+(P-12)+','+(P+inner/2)+')'},'↑ Creative'),
+
+    // Quadrant labels — placed in center of each quadrant
+    React.createElement('text',{x:P+inner/4,   y:P+inner/4-4,  textAnchor:'middle',fontSize:6.5,fill:'rgba(196,122,30,.7)',fontFamily:F,fontWeight:'700'},'Fix LP'),
+    React.createElement('text',{x:P+inner*3/4, y:P+inner/4-4,  textAnchor:'middle',fontSize:6.5,fill:'rgba(26,107,60,.75)', fontFamily:F,fontWeight:'700'},'Both Strong'),
+    React.createElement('text',{x:P+inner/4,   y:P+inner*3/4-4,textAnchor:'middle',fontSize:6.5,fill:'rgba(192,57,43,.7)', fontFamily:F,fontWeight:'700'},'Both Weak'),
+    React.createElement('text',{x:P+inner*3/4, y:P+inner*3/4-4,textAnchor:'middle',fontSize:6.5,fill:'rgba(160,82,45,.75)',fontFamily:F,fontWeight:'700'},'Fix Creative'),
+
+    // Score values as sub-labels
+    React.createElement('text',{x:P+inner/4,   y:P+inner/4+6,  textAnchor:'middle',fontSize:6,fill:'rgba(196,122,30,.5)',fontFamily:F},'(upgrade LP)'),
+    React.createElement('text',{x:P+inner*3/4, y:P+inner/4+6,  textAnchor:'middle',fontSize:6,fill:'rgba(26,107,60,.5)', fontFamily:F},'(scale now)'),
+    React.createElement('text',{x:P+inner/4,   y:P+inner*3/4+6,textAnchor:'middle',fontSize:6,fill:'rgba(192,57,43,.5)', fontFamily:F},'(kill / rebuild)'),
+    React.createElement('text',{x:P+inner*3/4, y:P+inner*3/4+6,textAnchor:'middle',fontSize:6,fill:'rgba(160,82,45,.5)',fontFamily:F},'(new creative)'),
+
+    // Crosshair lines from dot to axes
+    React.createElement('line',{x1:dotX,y1:P+inner,x2:dotX,y2:dotY,stroke:dc,strokeWidth:0.6,strokeDasharray:'2 2',opacity:0.4}),
+    React.createElement('line',{x1:P,   y1:dotY,   x2:dotX,y2:dotY,stroke:dc,strokeWidth:0.6,strokeDasharray:'2 2',opacity:0.4}),
+
+    // Dot
+    React.createElement('circle',{cx:dotX,cy:dotY,r:11,fill:dc,opacity:0.12}),
+    React.createElement('circle',{cx:dotX,cy:dotY,r:5.5,fill:dc,opacity:0.92}),
+    React.createElement('circle',{cx:dotX,cy:dotY,r:5.5,fill:'none',stroke:'rgba(255,255,255,.8)',strokeWidth:1.5}),
+
+    // Score labels on axes where dot projects
+    React.createElement('text',{x:dotX,y:P+inner+9,textAnchor:'middle',fontSize:6.5,fill:dc,fontFamily:F,fontWeight:'700'},lps.toFixed(1)),
+    React.createElement('text',{x:P-5, y:dotY+2,   textAnchor:'end',  fontSize:6.5,fill:dc,fontFamily:F,fontWeight:'700'},cs.toFixed(1))
   );
 };
 
