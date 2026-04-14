@@ -67,6 +67,7 @@ const Sty = () => React.createElement('style', null, `
   ::-webkit-scrollbar-thumb{background:rgba(40,25,8,.14);border-radius:4px}
 `);
 
+// tCpa = null means "no CPA set for this ad" → ROAS-only mode, CPA-dependent signals skipped
 const analyze = (raw, tCpa) => {
   const spend=+raw.spend||0,conv=+raw.conversions||0,rev=+raw.revenue||0;
   const roas=+raw.roas||0,days=+raw.days_running||0,ctr=+raw.ctr||0;
@@ -75,31 +76,51 @@ const analyze = (raw, tCpa) => {
   const vcr=raw.video_completion_rate!=null?+raw.video_completion_rate:null;
   const cpa=+raw.cpa||(conv>0?spend/conv:0);
   const status=(raw.status||'').toLowerCase();
+  const hasCpa=tCpa!=null&&tCpa>0;
   const S=[];
-  if(spend>3*tCpa&&conv===0&&days>=5) S.push({id:'drain',label:'Budget Drain',cat:'kill',w:100,desc:'Rs'+spend.toLocaleString()+' spent over '+days+'d with zero conversions.'});
-  if(roas>0&&roas<0.4&&days>=21) S.push({id:'ruin',label:'Confirmed Loss',cat:'kill',w:96,desc:'ROAS '+roas.toFixed(2)+'x below break-even for '+days+' days.'});
-  if(impr>3e6&&ctr<0.2&&conv===0&&days>=7) S.push({id:'ghost',label:'Ghost Ad',cat:'kill',w:90,desc:(impr/1e6).toFixed(1)+'M impressions, '+ctr+'% CTR, zero conversions.'});
-  if(cs<2.5&&lps<3&&conv===0&&spend>tCpa) S.push({id:'struct',label:'Structural Failure',cat:'kill',w:88,desc:'Creative '+cs.toFixed(1)+'/10, LP '+lps.toFixed(1)+'/10, zero conversions.'});
-  if(conv>0&&rev>0&&cs<5&&roas>1.5) S.push({id:'cceil',label:'Creative Ceiling',cat:'upgrade',w:95,desc:roas.toFixed(1)+'x ROAS despite creative '+cs.toFixed(1)+'/10. Upgrade creative to multiply returns.'});
+
+  // ── CPA-dependent kill signals (only when target set) ──
+  if(hasCpa&&spend>3*tCpa&&conv===0&&days>=5) S.push({id:'drain',label:'Budget Drain',cat:'kill',w:100,desc:'Rs'+spend.toLocaleString()+' spent over '+days+'d — '+(spend/tCpa).toFixed(1)+'x target CPA — zero conversions.'});
+  if(hasCpa&&cs<2.5&&lps<3&&conv===0&&spend>tCpa) S.push({id:'struct',label:'Structural Failure',cat:'kill',w:88,desc:'Creative '+cs.toFixed(1)+'/10, LP '+lps.toFixed(1)+'/10, zero conversions.'});
+
+  // ── ROAS-only kill signals (always active) ──
+  if(roas>0&&roas<0.4&&days>=21) S.push({id:'ruin',label:'Confirmed Loss',cat:'kill',w:96,desc:'ROAS '+roas.toFixed(2)+'x below break-even for '+days+' days. Data confirms structural loss.'});
+  if(impr>3e6&&ctr<0.2&&conv===0&&days>=7) S.push({id:'ghost',label:'Ghost Ad',cat:'kill',w:90,desc:(impr/1e6).toFixed(1)+'M impressions, '+ctr+'% CTR, zero conversions. Audience has voted.'});
+
+  // ── Upgrade signals (ROAS-based, always active) ──
+  if(conv>0&&rev>0&&cs<5&&roas>1.5) S.push({id:'cceil',label:'Creative Ceiling',cat:'upgrade',w:95,desc:roas.toFixed(1)+'x ROAS despite creative '+cs.toFixed(1)+'/10. Better creative = higher returns.'});
   if(conv>0&&rev>0&&lps<4.5&&roas>1.5) S.push({id:'lpceil',label:'LP Ceiling',cat:'upgrade',w:90,desc:'LP '+lps.toFixed(1)+'/10 suppressing conversions on a '+roas.toFixed(1)+'x ROAS ad.'});
-  if(cs>6&&lps<4&&ctr>2&&conv>0) S.push({id:'lpdrag',label:'LP Drag',cat:'upgrade',w:82,desc:'Creative '+cs.toFixed(1)+'/10 driving '+ctr+'% CTR but LP '+lps.toFixed(1)+'/10 squanders clicks.'});
-  if(cs>7.5&&roas<2&&conv>0&&lps<5) S.push({id:'cw',label:'Creative Wasted',cat:'upgrade',w:78,desc:'Creative '+cs.toFixed(1)+'/10 working hard but LP '+lps.toFixed(1)+'/10 wastes traffic.'});
-  if(vcr!==null&&vcr<30&&conv>0&&cs<6) S.push({id:'vhook',label:'Video Hook Upgrade',cat:'upgrade',w:72,desc:vcr+'% video completion. Compress value into first 3 seconds.'});
-  if(cpa>0&&cpa<=tCpa&&ctr>2&&days>=5&&conv>0) S.push({id:'proven',label:'Proven Performer',cat:'scale',w:100,desc:'CPA Rs'+cpa.toFixed(0)+' on target, CTR '+ctr+'%, '+days+'d validated.'});
-  if(roas>=10&&conv>0) S.push({id:'champ',label:'ROAS Champion',cat:'scale',w:96,desc:roas.toFixed(1)+'x return. Push budget aggressively.'});
-  if(cs>7&&lps>7&&roas>3&&conv>0) S.push({id:'ff',label:'Full Funnel Firing',cat:'scale',w:88,desc:'Creative '+cs.toFixed(1)+'/10, LP '+lps.toFixed(1)+'/10, ROAS '+roas.toFixed(1)+'x.'});
-  if(vcr!==null&&vcr>70&&conv>0&&cpa<=tCpa*1.2) S.push({id:'vid',label:'Video Performer',cat:'scale',w:82,desc:vcr+'% video completion with near-target CPA.'});
-  if(ctr>3&&lps<5&&conv===0) S.push({id:'lpb',label:'LP Blocking Conv.',cat:'optimize',w:75,desc:ctr+'% CTR but LP '+lps.toFixed(1)+'/10 converts zero. Fix the page.'});
-  if(cs<3.5&&ctr<0.8&&spend>tCpa&&conv===0) S.push({id:'dc',label:'Creative Not Landing',cat:'optimize',w:65,desc:'Creative '+cs.toFixed(1)+'/10 with '+ctr+'% CTR. Not breaking through.'});
+  if(cs>6&&lps<4&&ctr>2&&conv>0) S.push({id:'lpdrag',label:'LP Drag',cat:'upgrade',w:82,desc:'Creative '+cs.toFixed(1)+'/10 driving '+ctr+'% CTR but LP '+lps.toFixed(1)+'/10 squanders those clicks.'});
+  if(cs>7.5&&roas<2&&conv>0&&lps<5) S.push({id:'cw',label:'Creative Wasted on Bad LP',cat:'upgrade',w:78,desc:'Creative '+cs.toFixed(1)+'/10 doing its job but LP '+lps.toFixed(1)+'/10 wastes the traffic.'});
+  if(vcr!==null&&vcr<30&&conv>0&&cs<6) S.push({id:'vhook',label:'Video Hook Upgrade',cat:'upgrade',w:72,desc:vcr+'% video completion. Compress value into first 3 seconds — fundamentals sound.'});
+
+  // ── CPA-dependent scale signals ──
+  if(hasCpa&&cpa>0&&cpa<=tCpa&&ctr>2&&days>=5&&conv>0) S.push({id:'proven',label:'Proven Performer',cat:'scale',w:100,desc:'CPA Rs'+cpa.toFixed(0)+' on target, CTR '+ctr+'%, '+days+'d validated. Scale now.'});
+  if(hasCpa&&vcr!==null&&vcr>70&&conv>0&&cpa<=tCpa*1.2) S.push({id:'vid',label:'Video Performer',cat:'scale',w:82,desc:vcr+'% video completion with near-target CPA.'});
+
+  // ── ROAS-only scale signals (always active) ──
+  if(roas>=10&&conv>0) S.push({id:'champ',label:'ROAS Champion',cat:'scale',w:96,desc:roas.toFixed(1)+'x return on spend. Push budget aggressively.'});
+  if(cs>7&&lps>7&&roas>3&&conv>0) S.push({id:'ff',label:'Full Funnel Firing',cat:'scale',w:88,desc:'Creative '+cs.toFixed(1)+'/10, LP '+lps.toFixed(1)+'/10, ROAS '+roas.toFixed(1)+'x. Everything working.'});
+
+  // ── Optimize signals ──
+  if(ctr>3&&lps<5&&conv===0) S.push({id:'lpb',label:'LP Blocking Conv.',cat:'optimize',w:75,desc:ctr+'% CTR proves ad works — LP '+lps.toFixed(1)+'/10 converts zero. Fix the page.'});
+  if(hasCpa&&cs<3.5&&ctr<0.8&&spend>tCpa&&conv===0) S.push({id:'dc',label:'Creative Not Landing',cat:'optimize',w:65,desc:'Creative '+cs.toFixed(1)+'/10 with '+ctr+'% CTR. Not breaking through the feed.'});
   if(impr>8e5&&ctr<0.6&&cs<6&&conv===0) S.push({id:'mm',label:'Audience Mismatch',cat:'optimize',w:60,desc:(impr/1e6).toFixed(1)+'M impressions at '+ctr+'% CTR. Test new targeting.'});
-  if(vcr!==null&&vcr<20&&spend>500&&conv===0) S.push({id:'hf',label:'Hook Failing',cat:'optimize',w:55,desc:vcr+'% video completion. Rework opening 3 seconds.'});
-  if(freq>8) S.push({id:'sat',label:'Audience Saturated',cat:'pause',w:72,desc:'Frequency '+freq.toFixed(1)+'x. Rest it and refresh creative.'});
-  if(freq>5.5&&cpa>tCpa*0.85) S.push({id:'fat',label:'Fatigue Setting In',cat:'pause',w:58,desc:'Frequency '+freq.toFixed(1)+'x. Performance will degrade soon.'});
-  if(conv>0&&cpa>1.8*tCpa&&days>=7) S.push({id:'costly',label:'Costly Conversions',cat:'watch',w:55,desc:'CPA Rs'+cpa.toFixed(0)+' is '+(cpa/tCpa).toFixed(1)+'x target.'});
-  if(cpc>12&&conv>0) S.push({id:'cpcm',label:'CPC Margin Risk',cat:'watch',w:45,desc:'Rs'+cpc.toFixed(2)+'/click compressing margin.'});
-  if(roas>0&&roas<1&&days<14&&conv>0) S.push({id:'es',label:'Early Struggle',cat:'watch',w:42,desc:'ROAS '+roas.toFixed(2)+'x below break-even, only '+days+'d in.'});
-  if(status==='paused'&&roas>2&&cpa<=tCpa*1.3) S.push({id:'pw',label:'Paused With Potential',cat:'watch',w:38,desc:'Paused but ROAS '+roas.toFixed(1)+'x with near-target CPA.'});
-  if(days<4) S.push({id:'new',label:'Too Early',cat:'info',w:20,desc:'Only '+days+'d of data. Need at least 5 days to judge.'});
+  if(vcr!==null&&vcr<20&&spend>500&&conv===0) S.push({id:'hf',label:'Hook Failing',cat:'optimize',w:55,desc:vcr+'% video completion. Rework the opening 3 seconds.'});
+
+  // ── Pause signals ──
+  if(freq>8) S.push({id:'sat',label:'Audience Saturated',cat:'pause',w:72,desc:'Frequency '+freq.toFixed(1)+'x. Rest it, refresh creative, return in 2 weeks.'});
+  if(hasCpa&&freq>5.5&&cpa>tCpa*0.85) S.push({id:'fat',label:'Fatigue Setting In',cat:'pause',w:58,desc:'Frequency '+freq.toFixed(1)+'x approaching saturation. Rotate before performance drops.'});
+
+  // ── Watch signals ──
+  if(hasCpa&&conv>0&&cpa>1.8*tCpa&&days>=7) S.push({id:'costly',label:'Costly Conversions',cat:'watch',w:55,desc:'CPA Rs'+cpa.toFixed(0)+' is '+(cpa/tCpa).toFixed(1)+'x target. Unsustainable long-term.'});
+  if(cpc>12&&conv>0) S.push({id:'cpcm',label:'CPC Margin Risk',cat:'watch',w:45,desc:'Rs'+cpc.toFixed(2)+'/click compressing margin. Monitor CPA trend.'});
+  if(roas>0&&roas<1&&days<14&&conv>0) S.push({id:'es',label:'Early Struggle',cat:'watch',w:42,desc:'ROAS '+roas.toFixed(2)+'x below break-even, only '+days+'d in. Give it time.'});
+  if(hasCpa&&status==='paused'&&roas>2&&cpa<=tCpa*1.3) S.push({id:'pw',label:'Paused With Potential',cat:'watch',w:38,desc:'Paused — but ROAS '+roas.toFixed(1)+'x with near-target CPA. Investigate.'});
+
+  // ── Info ──
+  if(days<4) S.push({id:'new',label:'Too Early to Judge',cat:'info',w:20,desc:'Only '+days+'d of data — need at least 5d to draw conclusions.'});
+
   S.sort((a,b)=>b.w-a.w);
   let action='Monitor';
   const has=c=>S.some(s=>s.cat===c);
@@ -109,7 +130,7 @@ const analyze = (raw, tCpa) => {
   else if(S.some(s=>s.id==='sat'||s.id==='fat'))action='Pause';
   else if(has('optimize'))action='Optimize';
   else if(has('watch'))action='Watch';
-  return{action,signals:S};
+  return{action,signals:S,hasCpa};
 };
 
 const fmt=(n,p)=>{p=p||'Rs';if(n==null||isNaN(n))return'--';if(n>=1e7)return p+(n/1e7).toFixed(2)+'Cr';if(n>=1e5)return p+(n/1e5).toFixed(2)+'L';if(n>=1e3)return p+(n/1e3).toFixed(1)+'K';return p+Math.round(n).toLocaleString();};
@@ -256,9 +277,8 @@ const Intro=({onDismiss})=>React.createElement('div',{className:'au',style:{marg
 );
 
 const Dashboard=()=>{
-  const [tCpa,setTCpa]=useState(50);
-  const [editCpa,setEditCpa]=useState(false);
-  const [sel,setSel]=useState(null);
+  const [perAdCpa,setPerAdCpa]=useState({});
+  const [selId,setSelId]=useState(null);
   const [dosTab,setDosTab]=useState('overview');
   const [fAct,setFAct]=useState('all');
   const [fPlat,setFPlat]=useState('all');
@@ -285,12 +305,13 @@ const Dashboard=()=>{
     const proc=allRaw.map(raw=>{
       const spend=+raw.spend||0,revenue=+raw.revenue||0,conv=+raw.conversions||0;
       const roas=+raw.roas||0,cpa=(+raw.cpa)||(conv>0?spend/conv:0);
-      const res=analyze(raw,tCpa);
+      const adCpa=perAdCpa[raw.ad_id]||null;
+      const res=analyze(raw,adCpa);
       return Object.assign({},raw,{spend,revenue,conv,roas,cpa,ctr:+raw.ctr||0,cpc:+raw.cpc||0,
         impressions:+raw.impressions||0,clicks:+raw.clicks||0,days:+raw.days_running||0,
         freq:+raw.frequency||0,cs:+raw.creative_score||0,lps:+raw.landing_page_score||0,
         vcr:raw.video_completion_rate!=null?+raw.video_completion_rate:null,
-        action:res.action,signals:res.signals});
+        action:res.action,signals:res.signals,hasCpa:res.hasCpa,adCpa});
     });
     const by=a=>proc.filter(x=>x.action===a);
     const kills=by('Kill'),ts=proc.reduce((s,a)=>s+a.spend,0);
@@ -300,9 +321,11 @@ const Dashboard=()=>{
       roas:ts>0?tr/ts:0,kills:kills.length,scales:by('Scale').length,
       upgrades:by('Upgrade').length,optims:by('Optimize').length,
       wasteRatio:ts>0?w/ts:0},platforms:Array.from(pSet).sort()};
-  },[allRaw,tCpa]);
+  },[allRaw,perAdCpa]);
 
   const ads=result.ads,metrics=result.metrics,platforms=result.platforms;
+  // sel is always the live enriched ad object — re-derived whenever ads or selId changes
+  const sel=selId?ads.find(a=>a.ad_id===selId)||null:null;
 
   const displayed=useMemo(()=>{
     let list=[...ads];
@@ -342,11 +365,7 @@ const Dashboard=()=>{
       h('div',{style:{width:1,height:24,background:C.bord}}),
       h('div',{style:{flex:1,maxWidth:280,position:'relative'}},
         h(Search,{size:13,style:{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:C.ink3}}),
-        h('input',{className:'si',value:search,onChange:e=>setSearch(e.target.value),placeholder:'Search brands...',style:{width:'100%',paddingLeft:32,paddingRight:12,height:34,border:'1.5px solid '+C.bord,borderRadius:9,background:'rgba(40,25,8,.03)',fontSize:12,color:C.ink,fontFamily:'Plus Jakarta Sans,system-ui,sans-serif',transition:'all .15s'}})),
-      h('div',{style:{marginLeft:'auto',display:'flex',alignItems:'center',gap:8,padding:'7px 14px',border:'1.5px solid '+C.bord,borderRadius:9,background:'rgba(40,25,8,.03)',cursor:'text'},onClick:()=>setEditCpa(true)},
-        h(Target,{size:13,style:{color:C.ink3}}),
-        h('span',{className:'fu',style:{fontSize:10,color:C.ink3,textTransform:'uppercase',letterSpacing:'.1em',fontWeight:700}},'Target CPA'),
-        editCpa?h('input',{type:'number',value:tCpa,autoFocus:true,onChange:e=>setTCpa(Math.max(1,+e.target.value)),onBlur:()=>setEditCpa(false),style:{width:56,background:'transparent',border:'none',outline:'none',color:C.ink,fontSize:14,fontWeight:500,textAlign:'right',fontFamily:'DM Mono,monospace'}}):h('span',{className:'fd',style:{fontSize:14,fontWeight:500,color:C.ink}},'Rs'+tCpa))),
+        h('input',{className:'si',value:search,onChange:e=>setSearch(e.target.value),placeholder:'Search brands...',style:{width:'100%',paddingLeft:32,paddingRight:12,height:34,border:'1.5px solid '+C.bord,borderRadius:9,background:'rgba(40,25,8,.03)',fontSize:12,color:C.ink,fontFamily:'Plus Jakarta Sans,system-ui,sans-serif',transition:'all .15s'}}))),
 
     /* INTRO */
     intro&&h(Intro,{onDismiss:()=>setIntro(false)}),
@@ -411,7 +430,7 @@ const Dashboard=()=>{
             const nS=ad.signals.filter(s=>s.cat==='scale').length;
             const nU=ad.signals.filter(s=>s.cat==='upgrade').length;
             const shown=nK+nS+nU+(top&&!['kill','scale','upgrade'].includes(top.cat)?1:0);
-            return h('tr',{key:ad.ad_id||i,onClick:()=>{setSel(ad);setDosTab('overview');},className:'row '+cfg.rc+' au',style:{borderBottom:'1px solid '+C.bord,animationDelay:Math.min(i*12,220)+'ms'}},
+            return h('tr',{key:ad.ad_id||i,onClick:()=>{setSelId(ad.ad_id);setDosTab('overview');},className:'row '+cfg.rc+' au',style:{borderBottom:'1px solid '+C.bord,animationDelay:Math.min(i*12,220)+'ms'}},
               h('td',{style:{padding:'13px 16px'}},
                 h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,padding:'4px 12px',borderRadius:100,fontSize:10,fontWeight:700,background:cfg.bg,color:cfg.c,border:'1.5px solid '+cfg.c+'33'}},ad.action)),
               h('td',{style:{padding:'13px 16px'}},
@@ -427,7 +446,7 @@ const Dashboard=()=>{
               h('td',{style:{padding:'13px 16px'}},
                 h('span',{className:'fh',style:{fontSize:18,fontWeight:700,lineHeight:1,fontVariantNumeric:'tabular-nums',color:ad.roas>=2?C.scale:ad.roas>0&&ad.roas<1?C.kill:C.ink}},ad.roas.toFixed(2)+'x'),
                 h(RoasMini,{roas:ad.roas})),
-              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:12,fontVariantNumeric:'tabular-nums',fontWeight:500,color:ad.cpa<=tCpa?C.scale:ad.cpa>tCpa*1.8?C.kill:C.optim}},fmt(ad.cpa))),
+              h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:12,fontVariantNumeric:'tabular-nums',fontWeight:500,color:ad.adCpa?(ad.cpa<=ad.adCpa?C.scale:ad.cpa>ad.adCpa*1.8?C.kill:C.optim):C.ink2}},fmt(ad.cpa))),
               h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:11,color:C.ink3,fontVariantNumeric:'tabular-nums'}},fmtPct(ad.ctr))),
               h('td',{style:{padding:'13px 16px'}},h('span',{className:'fd',style:{fontSize:11,color:C.ink3,fontVariantNumeric:'tabular-nums'}},ad.conv.toLocaleString())),
               h('td',{style:{padding:'13px 16px'}},h('span',{className:'fu',style:{fontSize:11,color:C.ink3}},ad.days+'d')),
@@ -445,9 +464,11 @@ const Dashboard=()=>{
     sel&&(()=>{
       const cfg=ACT[sel.action]||ACT.Monitor;
       const Icon=cfg.icon;
+      const adCpa=sel.adCpa;
+      const setCpa=v=>setPerAdCpa(prev=>Object.assign({},prev,{[sel.ad_id]:v>0?v:null}));
       const ti=(id,label)=>h('button',{key:id,onClick:()=>setDosTab(id),className:'tab fu',style:{padding:'9px 16px',fontSize:12,fontWeight:dosTab===id?700:400,color:dosTab===id?C.ink:C.ink3,borderBottom:'2px solid '+(dosTab===id?C.ink:'transparent')}},label);
       return h('div',{style:{position:'fixed',inset:0,zIndex:50,display:'flex',justifyContent:'flex-end'}},
-        h('div',{onClick:()=>setSel(null),style:{position:'absolute',inset:0,background:'rgba(20,12,4,.32)',backdropFilter:'blur(8px)'}}),
+        h('div',{onClick:()=>setSelId(null),style:{position:'absolute',inset:0,background:'rgba(20,12,4,.32)',backdropFilter:'blur(8px)'}}),
         h('div',{className:'ain fu',style:{position:'relative',width:'100%',maxWidth:490,background:C.surf,borderLeft:'1px solid '+C.bord,height:'100%',overflowY:'auto',display:'flex',flexDirection:'column',boxShadow:'-24px 0 72px rgba(40,25,8,.14)'}},
           h('div',{style:{padding:'24px 28px 0',borderBottom:'1px solid '+C.bord,position:'sticky',top:0,background:C.surf,zIndex:10}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}},
@@ -457,11 +478,27 @@ const Dashboard=()=>{
                 h('p',{className:'fu',style:{fontSize:11,color:C.ink3,marginTop:5,display:'flex',alignItems:'center',gap:6,fontWeight:400}},
                   h('span',{style:{display:'inline-block',width:5,height:5,borderRadius:'50%',background:platC(sel.platform)}}),
                   sel.platform+' · '+sel.ad_type+' · '+sel.category)),
-              h('button',{onClick:()=>setSel(null),className:'hb',style:{background:'rgba(40,25,8,.06)',border:'1.5px solid '+C.bord,borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,marginTop:2}},h(X,{size:14,color:C.ink2}))),
+              h('button',{onClick:()=>setSelId(null),className:'hb',style:{background:'rgba(40,25,8,.06)',border:'1.5px solid '+C.bord,borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,marginTop:2}},h(X,{size:14,color:C.ink2}))),
+
+            /* Per-ad Target CPA input */
+            h('div',{style:{marginBottom:14,padding:'12px 14px',borderRadius:10,border:'1.5px solid '+(adCpa?C.upgrade+'66':C.bord),background:adCpa?'rgba(160,82,45,.04)':'rgba(40,25,8,.025)',display:'flex',alignItems:'center',gap:10}},
+              h(Target,{size:14,style:{color:adCpa?C.upgrade:C.ink3,flexShrink:0}}),
+              h('div',{style:{flex:1}},
+                h('p',{className:'fu',style:{fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:adCpa?C.upgrade:C.ink3,fontWeight:700,marginBottom:3}},'Target CPA for this ad'),
+                h('p',{className:'fu',style:{fontSize:11,color:C.ink3,fontWeight:400}},adCpa?'CPA-based signals active':'No CPA set — showing ROAS analysis only')),
+              h('input',{
+                type:'number',min:'1',placeholder:'e.g. 150',
+                value:adCpa||'',
+                onChange:e=>setCpa(+e.target.value),
+                className:'si',
+                style:{width:90,height:32,border:'1.5px solid '+(adCpa?C.upgrade+'66':C.bord),borderRadius:8,background:C.surf,fontSize:13,fontFamily:'DM Mono,monospace',fontWeight:500,color:C.ink,textAlign:'right',padding:'0 10px',transition:'all .2s'}
+              })),
+
+            /* Verdict */
             h('div',{style:{padding:'10px 14px',borderRadius:10,background:cfg.bg,borderLeft:'3px solid '+cfg.c,marginBottom:14,display:'flex',gap:10,alignItems:'flex-start'}},
               h(Icon,{size:16,style:{color:cfg.c,flexShrink:0,marginTop:1}}),
               h('div',null,
-                h('span',{className:'fu',style:{fontSize:10,fontWeight:700,color:cfg.c,textTransform:'uppercase',letterSpacing:'.08em'}},sel.action),
+                h('span',{className:'fu',style:{fontSize:10,fontWeight:700,color:cfg.c,textTransform:'uppercase',letterSpacing:'.08em'}},sel.action+(!adCpa?' · ROAS only':'')),
                 h('p',{className:'fu',style:{fontSize:12,color:C.ink2,marginTop:2,lineHeight:1.6}},sel.signals[0]?sel.signals[0].desc:'Performance within normal range.'))),
             h('div',{style:{display:'flex',gap:0,borderTop:'1px solid '+C.bord}},
               ti('overview','Overview'),ti('signals','Signals ('+sel.signals.length+')'),ti('details','Details'))),
@@ -470,7 +507,7 @@ const Dashboard=()=>{
               h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginBottom:20}},
                 [{l:'Spend',v:fmt(sel.spend),mono:true},{l:'Revenue',v:fmt(sel.revenue),mono:true},
                  {l:'ROAS',v:sel.roas.toFixed(2)+'x',mono:true,c:sel.roas>=2?C.scale:sel.roas>0&&sel.roas<1?C.kill:C.ink},
-                 {l:'CPA',v:fmt(sel.cpa),mono:true,c:sel.cpa<=tCpa?C.scale:sel.cpa>tCpa*1.8?C.kill:C.optim},
+                 {l:'CPA',v:fmt(sel.cpa),mono:true,c:adCpa?(sel.cpa<=adCpa?C.scale:sel.cpa>adCpa*1.8?C.kill:C.optim):C.ink2},
                  {l:'CTR',v:fmtPct(sel.ctr),mono:true},{l:'Conv.',v:sel.conv.toLocaleString(),mono:true},
                  {l:'Creative',v:sel.cs.toFixed(1)+'/10',mono:true,c:sel.cs>=7?C.scale:sel.cs<4?C.kill:C.ink},
                  {l:'LP score',v:sel.lps.toFixed(1)+'/10',mono:true,c:sel.lps>=7?C.scale:sel.lps<4?C.kill:C.ink},
@@ -495,7 +532,11 @@ const Dashboard=()=>{
                       h('div',{style:{height:5,background:C.bord,borderRadius:3,overflow:'hidden'}},
                         h('div',{style:{height:'100%',width:x.pct+'%',background:x.c,borderRadius:3,transition:'width .8s ease'}})));
                   })))),
-            dosTab==='signals'&&h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+            dosTab==='signals'&&h('div',null,
+              !adCpa&&h('div',{style:{padding:'10px 14px',borderRadius:8,background:'rgba(196,122,30,.07)',border:'1px solid rgba(196,122,30,.25)',marginBottom:12,display:'flex',gap:8,alignItems:'flex-start'}},
+                h(Target,{size:13,style:{color:C.optim,flexShrink:0,marginTop:1}}),
+                h('p',{className:'fu',style:{fontSize:11,color:C.ink2,lineHeight:1.55}},'Enter a Target CPA above to unlock 8 additional signals — including Budget Drain, Proven Performer, Costly Conversions, and more. Currently showing ROAS-based signals only.')),
+              h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
               sel.signals.length===0?h('p',{className:'fb',style:{fontSize:15,color:C.ink3,fontStyle:'italic',padding:'20px 0'}},'No active signals detected.'):
               sel.signals.map(sig=>{
                 const col=CAT_C[sig.cat]||C.ink3;
@@ -504,9 +545,9 @@ const Dashboard=()=>{
                     h('span',{className:'fu',style:{fontSize:11,fontWeight:700,color:col,letterSpacing:'.03em'}},sig.label),
                     h('span',{className:'fu',style:{fontSize:9,color:C.ink3,textTransform:'uppercase',letterSpacing:'.09em',background:col+'18',padding:'2px 8px',borderRadius:100,fontWeight:700}},sig.cat)),
                   h('p',{className:'fu',style:{fontSize:12,color:C.ink2,lineHeight:1.6,fontWeight:400}},sig.desc));
-              })),
+              }))),
             dosTab==='details'&&h('div',null,
-              [['Ad ID',sel.ad_id],['Brand',sel.brand],['Platform',sel.platform],['Ad type',sel.ad_type],['Category',sel.category],['Audience',sel.target_audience],['Creative theme',sel.creative_theme],['Status',sel.status],['Start date',sel.start_date],['Days running',sel.days+'d'],['Spend',fmt(sel.spend)],['Revenue',fmt(sel.revenue)],['ROAS',sel.roas.toFixed(2)+'x'],['CPA',fmt(sel.cpa)],['Target CPA',fmt(tCpa)],['CTR',fmtPct(sel.ctr)],['CPC',fmt(sel.cpc)],['Conversions',sel.conv.toLocaleString()],['Impressions',(+sel.impressions||0).toLocaleString()],['Clicks',(+sel.clicks||0).toLocaleString()],['Frequency',sel.freq.toFixed(2)+'x'],['Creative score',sel.cs.toFixed(1)+'/10'],['LP score',sel.lps.toFixed(1)+'/10'],['Video compl.',sel.vcr!=null?sel.vcr+'%':'N/A']].map(function([label,value]){
+              [['Ad ID',sel.ad_id],['Brand',sel.brand],['Platform',sel.platform],['Ad type',sel.ad_type],['Category',sel.category],['Audience',sel.target_audience],['Creative theme',sel.creative_theme],['Status',sel.status],['Start date',sel.start_date],['Days running',sel.days+'d'],['Spend',fmt(sel.spend)],['Revenue',fmt(sel.revenue)],['ROAS',sel.roas.toFixed(2)+'x'],['CPA',fmt(sel.cpa)],['Target CPA',adCpa?fmt(adCpa):'Not set (ROAS only)'],['CTR',fmtPct(sel.ctr)],['CPC',fmt(sel.cpc)],['Conversions',sel.conv.toLocaleString()],['Impressions',(+sel.impressions||0).toLocaleString()],['Clicks',(+sel.clicks||0).toLocaleString()],['Frequency',sel.freq.toFixed(2)+'x'],['Creative score',sel.cs.toFixed(1)+'/10'],['LP score',sel.lps.toFixed(1)+'/10'],['Video compl.',sel.vcr!=null?sel.vcr+'%':'N/A']].map(function([label,value]){
                 return h('div',{key:label,style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'8px 0',borderBottom:'1px solid '+C.bord}},
                   h('span',{className:'fu',style:{fontSize:11,color:C.ink3,fontWeight:600}},label),
                   h('span',{className:'fd',style:{fontSize:12,color:C.ink2}},value||'--'));
